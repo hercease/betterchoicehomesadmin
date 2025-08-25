@@ -1,0 +1,195 @@
+<?php
+require_once('config/config.php');
+require_once('app/controllers/db_controller.php');
+require_once('app/controllers/view_controller.php');
+require_once('app/controllers/model_controller.php');
+require_once('app/models/allmodels.php');
+// Handle routing
+$baseDir = '/betterchoicehomeadmin';  // Base directory where your app is located
+$url = str_replace($baseDir, '', parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH));
+// Initialize database
+$db = (new Database())->connect();
+$rootUrl = (new allmodels($db))->getCurrentUrl();
+$viewController = new ViewController($db);
+$modelController = new ModelController($db);
+
+switch ($url) {
+    case '/login':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $viewController->showLoginPage($rootUrl);
+        }
+        break;
+    case '/allusers':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $viewController->showAllUsersPage($rootUrl);
+        }
+        break;
+    case '/locations':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $viewController->showAllLocationsPage($rootUrl);
+        }
+        break;
+    case '/createuser':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $viewController->showCreateUserPage($rootUrl);
+        }
+        break;
+    case '/generatereport':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $viewController->showGenerateReportPage($rootUrl);
+        }
+        break;
+    case (preg_match('/^\/userdetails\/(\d+)$/', $url, $matches) ? '/userdetails/' . $matches[1] : null):
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $userId = $matches[1];
+            $viewController->showUserDetailsPage($userId,$rootUrl);
+        }
+        break;
+    case '/createlocation':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $viewController->showCreateLocationPage($rootUrl);
+        }
+        break;
+    case '/createschedule':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $viewController->showCreateSchedulePage($rootUrl);
+        }
+        break;
+    case '/allschedules':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $viewController->showAllSchedulePage($rootUrl);
+        }
+        break;
+    case '/change_password':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $viewController->showChangePasswordPage($rootUrl);
+        }
+        break;
+    case '/profile_details':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $viewController->showProfilePage($rootUrl);
+        }
+        break;
+    case '/edit_profile':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $viewController->showEditProfilePage($rootUrl);
+        }
+        break;
+    case '/logout':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $viewController->Logout($rootUrl);
+        }
+        break;
+    case '/dashboard':
+    case '/':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $viewController->showDashboardPage($rootUrl);
+        }
+        break;
+    case '/handlelogin':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $modelController->handleLogin();
+        }
+        break;
+    case '/fetch_all_staffs':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $modelController->fetchStaffsList();
+        }
+        break;
+    case '/fetch_all_locations':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $modelController->fetchAllLocationsData();
+        }
+        break;
+    case '/get-coordinates':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $modelController->getCoordinates();
+        }
+        break;
+    case '/processlocationregistration':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $modelController->ProcessLocation();
+        }
+        break;
+    case '/processcreateuser':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->ProcessCreateUser();
+        }
+        break;
+    case '/fetch_user_documents':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->fetchUserDocumentData();
+        }
+        break;
+    case '/fetch_user_certificates':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->fetchUserCertificateData();
+        }
+        break;
+    case '/fetch_all_schedule':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->fetchAllSchedule();
+        }
+        break;
+    case '/delete_user_details':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->DeleteUserDetails();
+        }
+        break;
+    case '/update_account_status':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->UpdateUserAccountStatus();
+        }
+        break;
+    case '/generatescheduleform':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->GenerateScheduleForm();
+        }
+        break;
+    case '/save_schedule':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->saveSchedule();
+        }
+        break;
+    case '/delete_schedule':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->DeleteSchedule();
+        }
+        break;
+    case '/update_schedule':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->updateSchedule();
+        }
+        break;
+    case '/processchangepassword':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->changePassword();
+        }
+        break;
+    case '/delete_user_document':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->deleteDocument();
+        }
+        break;
+    case '/document_activation':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->documentActivation();
+        }
+        break;
+    case '/generate_report_result':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->generateReports();
+        }
+        break;
+    case '/schedule_testing':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->scheduleTesting();
+        }
+        break;
+    case '/update_profile':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->updateProfile();
+        }
+        break;
+    
+    }
