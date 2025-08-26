@@ -406,7 +406,7 @@
                         ";
                         break;
 
-                    case 'directorofservices':
+                    case 'dos':
                         $roleMessage = "
                             <h2>Dear {$name},</h2>
                             <p>Welcome to the leadership team at Better Choice Homes! 
