@@ -423,7 +423,7 @@
                             <p>Welcome! We’re so happy to have you on board as part of our Direct Support Staff. 
                             Your role is essential in helping our clients live fulfilling lives, and we’re grateful you’ve chosen to be part of this mission.
                             </p>
-                            <p>Thank you for joining <strong>Better Choice Homes</strong>. 
+                            <p>Thank you for joining <strong>Better Choice Group Homes</strong>. 
                             To complete your hiring process, please follow these steps:</p>
                             <ol>
                                 <li>Download our mobile app from the Google Play Store or Apple App Store.</li>

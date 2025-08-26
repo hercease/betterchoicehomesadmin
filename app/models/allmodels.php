@@ -228,7 +228,7 @@ class allmodels{
             $mail->Port       = 465;               
     
             //Recipients
-            $mail->setFrom(SMTP_FROM_EMAIL, 'Better Choice Homes'); // Sender's email and name
+            $mail->setFrom(SMTP_FROM_EMAIL, 'Better Choice Group Homes'); // Sender's email and name
             $mail->addAddress("$email", "$name"); 
             
             $mail->isHTML(true); 
