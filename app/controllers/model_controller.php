@@ -409,10 +409,9 @@
                     case 'dos':
                         $roleMessage = "
                             <h2>Dear {$name},</h2>
-                            <p>Welcome to the leadership team at Better Choice Homes! 
-                            As our <strong>Director of Services</strong>, your role in overseeing quality service delivery 
-                            will shape the experience of countless clients and team members.</p>
-                            <p>To begin, kindly log in and complete your profile using the link below so we can finalize your setup:</p>
+                            <p>Welcome! We’re so happy to have you on board as part of our Direct Support Staff. 
+                            Your role is essential in helping our clients live fulfilling lives, and we’re grateful you’ve chosen to be part of this mission.</p>
+                            <p>To get started, please log in and complete your profile using the link below:</p>
                             <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
                         ";
                         break;
