@@ -371,6 +371,13 @@
                             Your expertise will be key in supporting our people and cultivating a positive, inclusive workplace culture.
                             </p>
                             <p>To get started, please log in and complete your profile using the link below:</p>
+                            <ol>
+                                <li>Login using these credentials:<br>
+                                    <strong>Email:</strong> {$input['email']}<br>
+                                    <strong>Password:</strong> {$password}
+                                </li>
+                                <li>You can always change your password in your account.</li>
+                            </ol>
                             <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
                         ";
                         break;
@@ -382,6 +389,13 @@
                             ensuring quality service delivery, and fostering a supportive environment for both staff and clients.
                             </p>
                             <p>To get started, please log in and complete your profile using the link below:</p>
+                            <ol>
+                                <li>Login using these credentials:<br>
+                                    <strong>Email:</strong> {$input['email']}<br>
+                                    <strong>Password:</strong> {$password}
+                                </li>
+                                <li>You can always change your password in your account.</li>
+                            </ol>
                             <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
                         ";
                         break;
@@ -393,6 +407,13 @@
                             coordination will help keep everything running smoothly and ensure our team stays organized and efficient.
                             </p>
                             <p>To get started, please log in and complete your profile information using the link below:</p>
+                            <ol>
+                                <li>Login using these credentials:<br>
+                                    <strong>Email:</strong> {$input['email']}<br>
+                                    <strong>Password:</strong> {$password}
+                                </li>
+                                <li>You can always change your password in your account.</li>
+                            </ol>
                             <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
                         ";
                         break;
@@ -403,6 +424,13 @@
                             <p>We’re happy to have you join as an <strong>Accountant</strong>. 
                             Your attention to detail and financial stewardship is vital to our growth and stability.</p>
                             <p>To get started, please log in and complete your profile information using the link below:</p>
+                            <ol>
+                                <li>Login using these credentials:<br>
+                                    <strong>Email:</strong> {$input['email']}<br>
+                                    <strong>Password:</strong> {$password}
+                                </li>
+                                <li>You can always change your password in your account.</li>
+                            </ol>
                             <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
                         ";
                         break;
@@ -413,6 +441,13 @@
                             <p>We’re thrilled to welcome you to our executive team as the Director of Services! Your experience and leadership will be instrumental 
                             in enhancing the quality of our support and driving positive outcomes for both our clients and our team.</p>
                             <p>To get started, please log in and complete your profile using the link below so we can finish setting everything up:</p>
+                            <ol>
+                                <li>Login using these credentials:<br>
+                                    <strong>Email:</strong> {$input['email']}<br>
+                                    <strong>Password:</strong> {$password}
+                                </li>
+                                <li>You can always change your password in your account.</li>
+                            </ol>
                             <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
                         ";
                         break;
