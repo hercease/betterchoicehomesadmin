@@ -13,6 +13,10 @@ class ViewController {
     public function showLoginPage($rootUrl){
         require_once('app/views/login.php');
     }
+
+    public function showForgotPage($rootUrl){
+        require_once('app/views/forgot_password.php');
+    }
     // Display the dashboard page
     public function showDashboardPage($rootUrl){
         if (session_status() === PHP_SESSION_NONE) {

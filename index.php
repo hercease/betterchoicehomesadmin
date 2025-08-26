@@ -19,6 +19,11 @@ switch ($url) {
             $viewController->showLoginPage($rootUrl);
         }
         break;
+    case '/forgot_password':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $viewController->showForgotPage($rootUrl);
+        }
+        break;
     case '/allusers':
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $viewController->showAllUsersPage($rootUrl);
@@ -189,6 +194,11 @@ switch ($url) {
     case '/update_profile':
         if ($_SERVER['REQUEST_METHOD'] === 'POST'){
             $modelController->updateProfile();
+        }
+        break;
+    case '/process_forgot_password':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->processForgotPassword();
         }
         break;
     

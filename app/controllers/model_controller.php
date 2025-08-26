@@ -69,6 +69,92 @@
        
     }
 
+     public function processForgotPassword(){
+        try{
+
+            $email = $this->allmodels->sanitizeInput($_POST['email']);
+            $userInfo = $this->allmodels->getUserInfo($email);
+
+            if (!$userInfo) {
+                throw new Exception("User not found");
+            }
+
+            $firstName = $userInfo['firstname'] ?? '';
+            $password = $this->allmodels->generateRandomPassword(7);
+            $newPassword = password_hash($password, PASSWORD_DEFAULT);
+            $year = date("Y");
+
+            $stmt = $this->db->prepare("UPDATE users SET password = ? WHERE email = ?");
+            $stmt->bind_param("ss", $newPassword, $email);
+            $stmt->execute();
+            $stmt->close();
+
+            $subject = "Password Reset - Better Choice Homes";
+
+        $message = <<<EMAIL
+            <!DOCTYPE html>
+            <html lang="en">
+            <head>
+            <meta charset="UTF-8">
+            <title>Password Reset - Better Choice Homes</title>
+            <style>
+                body { font-family: 'Segoe UI', sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; color: #333; }
+                .container { max-width: 600px; margin: 30px auto; background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; overflow: hidden; }
+                .header { background-color: #0a3d62; padding: 20px; color: #ffffff; text-align: center; }
+                .body { padding: 30px; }
+                .body h2 { color: #0a3d62; margin-top: 0; }
+                .password-box {
+                    background-color: #f1f3f5;
+                    padding: 15px;
+                    border-radius: 5px;
+                    font-size: 18px;
+                    font-weight: bold;
+                    text-align: center;
+                    letter-spacing: 1px;
+                    color: #0a3d62;
+                    margin: 20px 0;
+                }
+                .footer { text-align: center; font-size: 13px; color: #888; padding: 20px; }
+            </style>
+            </head>
+            <body>
+            <div class="container">
+                <div class="header">
+                    <h1>Password Reset</h1>
+                </div>
+                <div class="body">
+                    <h2>Hello {$firstName},</h2>
+                    <p>You recently requested to reset your password for your Better Choice Homes account.</p>
+                    <p>Here is your new temporary password:</p>
+                    <div class="password-box">{$password}</div>
+                    <p>For your security, please log in and change your password immediately.</p>
+                    <p>If you didn’t request this change, please contact our support team right away.</p>
+                </div>
+                <div class="footer">
+                    &copy; {$year} Better Choice Homes. All rights reserved.
+                </div>
+            </div>
+            </body>
+            </html>
+            EMAIL;
+
+            $this->allmodels->sendmail($email, $firstName, $message, $subject);
+
+            echo json_encode([
+                'status' => true,
+                'message' => 'Password reset email sent successful'
+            ]);
+
+        } catch(Exception $th){
+            echo json_encode([
+                'status' => false,
+                'message' => $th->getMessage()
+            ]);
+        }
+       
+
+    }
+
     public function fetchAllUsersData() {
         session_start();
         // Fetch data for DataTables
@@ -1273,8 +1359,7 @@
             $startDate = !empty($dates[0]) ? date('Y-m-d', strtotime(trim($dates[0]))) : '';
             $endDate = !empty($dates[1]) ? date('Y-m-d', strtotime(trim($dates[1]))) : '';
 
-            error_log($startDate);
-            error_log($endDate);
+            //error_log('location:  '$location);
 
             // Pagination parameters
             $page = isset($_POST['page']) ? (int)$_POST['page'] : 1;
@@ -1283,13 +1368,13 @@
 
             // Build WHERE clauses based on input
             if (!empty($email)) {
-                $whereClauses[] = "email LIKE ?";
+                $whereClauses[] = "s.email LIKE ?";
                 $params[] = "%$email%";
                 $types .= 's';
             }
 
             if (!empty($location)) {
-                $whereClauses[] = "location_name = ?";
+                $whereClauses[] = "s.location_name = ?";
                 $params[] = $location;
                 $types .= 's';
             }
@@ -1322,9 +1407,9 @@
                 s.shift_type,
                 s.pay_per_hour,
                 s.overnight_type,
+                s.email,
                 TIMESTAMPDIFF(MINUTE, s.clockin, s.clockout) AS minutes_worked
-              FROM scheduling s
-              JOIN users u ON s.email = u.email";
+              FROM scheduling s JOIN users u ON s.email = u.email";
 
             // Add WHERE clauses if any
             if (!empty($whereClauses)) {
@@ -1332,7 +1417,7 @@
             }
 
             // Count total records for pagination
-            $countQuery = "SELECT COUNT(*) as total FROM scheduling";
+            $countQuery = "SELECT COUNT(*) as total FROM scheduling s JOIN users u ON s.email = u.email";
             if (!empty($whereClauses)) {
                 $countQuery .= " WHERE " . implode(" AND ", $whereClauses);
             }

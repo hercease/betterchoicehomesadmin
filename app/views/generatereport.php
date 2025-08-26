@@ -210,7 +210,7 @@
                                     <select class="form-control border-0 shadow" name="location" id="location">
                                         <option value="">--------- Select location --------</option>
                                         <?php foreach($data['all_location'] as $location){ ?>
-                                            <option value="<?php echo $location['id'] ?>"><?php echo $location['address'].', '.$location['city'].', '.$location['province'] ?></option>
+                                            <option value="<?php echo $location['address'].', '.$location['city'].', '.$location['province'] ?>"><?php echo $location['address'].', '.$location['city'].', '.$location['province'] ?></option>
                                         <?php } ?>
                                     </select>
                                 </div>
@@ -363,7 +363,7 @@
                     let hasValue = false;
 
                     // Check all inputs/selects in the form
-                    form.querySelectorAll('input').forEach(el => {
+                    form.querySelectorAll('input, select').forEach(el => {
                         if (el.type === 'checkbox' || el.type === 'radio') {
                             if (el.checked) hasValue = true;
                         } else if (el.value.trim() !== '') {

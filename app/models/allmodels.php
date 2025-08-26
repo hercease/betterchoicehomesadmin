@@ -197,7 +197,7 @@ class allmodels{
     }
 
     function generateRandomPassword($length = 10): string {
-        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()-_=+';
+        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
         $password = '';
         $maxIndex = strlen($chars) - 1;
 
