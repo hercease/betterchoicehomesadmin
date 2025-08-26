@@ -182,7 +182,7 @@
                                                     <option value="hr">HR</option>
                                                     <option value="accountant">Accountant</option>
                                                     <option value="scheduler">Scheduler</option>
-                                                    <option value="directorofservices">Director of Services</option>
+                                                    <option value="dos">Director of Services</option>
                                                 </select>
                                             </div>
                                            

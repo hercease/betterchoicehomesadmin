@@ -35,7 +35,7 @@
             }
 
             // Define allowed roles for admin access
-            $allowedRoles = ['hr', 'manager', 'accountant', 'scheduler', 'director of services', 'super-admin'];
+            $allowedRoles = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
 
             // Check if user is either an admin or has an allowed role
             if (!in_array($userInfo['role'], $allowedRoles)) {
