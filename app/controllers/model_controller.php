@@ -367,10 +367,10 @@
                     case 'hr':
                         $roleMessage = "
                             <h2>Hello {$name},</h2>
-                            <p>We're thrilled to welcome you to the <strong>HR team</strong> at Better Choice Homes. 
-                            Your dedication to people and organizational excellence is what makes companies thrive — 
-                            and we’re excited to have you lead that mission here.</p>
-                            <p>Please log in to your account and complete your profile so we can get you started using the link below:</p>
+                            <p>Welcome to the team! We’re excited to have you step into your new role in Human Resources. 
+                            Your expertise will be key in supporting our people and cultivating a positive, inclusive workplace culture.
+                            </p>
+                            <p>To get started, please log in and complete your profile using the link below:</p>
                             <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
                         ";
                         break;
@@ -378,10 +378,10 @@
                     case 'manager':
                         $roleMessage = "
                             <h2>Dear {$name},</h2>
-                            <p>Welcome aboard! As a <strong>Manager</strong> at Better Choice Homes, 
-                            your leadership and strategic input will be crucial in helping us build stronger teams 
-                            and deliver outstanding results.</p>
-                            <p>To unlock your full access, please log in and complete your profile details using the link below:</p>
+                            <p>We’re excited to welcome you as a Manager! Your leadership will be vital in guiding our team, 
+                            ensuring quality service delivery, and fostering a supportive environment for both staff and clients.
+                            </p>
+                            <p>To get started, please log in and complete your profile using the link below:</p>
                             <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
                         ";
                         break;
@@ -389,8 +389,9 @@
                     case 'scheduler':
                         $roleMessage = "
                             <h2>Hi {$name},</h2>
-                            <p>We're excited to welcome you to the <strong>Scheduling team</strong>. 
-                            Your coordination skills will help ensure our operations run smoothly and efficiently.</p>
+                            <p>Welcome aboard! We’re excited to have you join us as a Scheduler. Your attention to detail and 
+                            coordination will help keep everything running smoothly and ensure our team stays organized and efficient.
+                            </p>
                             <p>To get started, please log in and complete your profile information using the link below:</p>
                             <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
                         ";
@@ -409,9 +410,9 @@
                     case 'dos':
                         $roleMessage = "
                             <h2>Dear {$name},</h2>
-                            <p>Welcome! We’re so happy to have you on board as part of our Direct Support Staff. 
-                            Your role is essential in helping our clients live fulfilling lives, and we’re grateful you’ve chosen to be part of this mission.</p>
-                            <p>To get started, please log in and complete your profile using the link below:</p>
+                            <p>We’re thrilled to welcome you to our executive team as the Director of Services! Your experience and leadership will be instrumental 
+                            in enhancing the quality of our support and driving positive outcomes for both our clients and our team.</p>
+                            <p>To get started, please log in and complete your profile using the link below so we can finish setting everything up:</p>
                             <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
                         ";
                         break;
@@ -419,6 +420,9 @@
                     case 'staff':
                         $roleMessage = "
                             <h2>Dear {$name},</h2>
+                            <p>Welcome! We’re so happy to have you on board as part of our Direct Support Staff. 
+                            Your role is essential in helping our clients live fulfilling lives, and we’re grateful you’ve chosen to be part of this mission.
+                            </p>
                             <p>Thank you for joining <strong>Better Choice Homes</strong>. 
                             To complete your hiring process, please follow these steps:</p>
                             <ol>
