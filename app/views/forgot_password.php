@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Forgot Password - BetterChoiceHomes | Admin</title>
+    <title>Forgot Password - BetterChoiceGroupHomes | Admin</title>
     <link href="/public/css/styles.css" rel="stylesheet" />
     <link rel="icon" type="image/x-icon" href="/public/assets/img/favicon/favicon.ico" />
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Nunito+Sans:wght@400;500&display=swap" rel="stylesheet">

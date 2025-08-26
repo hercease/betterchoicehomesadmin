@@ -6,7 +6,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta name="description" content="" />
         <meta name="author" content="" />
-        <title>Change Password - BetterChoiceHomes | Admin</title>
+        <title>Change Password - BetterChoiceGroupHomes | Admin</title>
         <link href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css" rel="stylesheet" />
         <link href="/public/css/styles.css" rel="stylesheet" />
         <link rel="icon" type="image/x-icon" href="/public/assets/img/favicon/favicon.ico" />

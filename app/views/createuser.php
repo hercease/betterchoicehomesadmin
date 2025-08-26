@@ -6,7 +6,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
         <meta name="description" content="" />
         <meta name="author" content="" />
-        <title>Create Staff - BetterChoiceHomes | Admin</title>
+        <title>Create Staff - BetterChoiceGroupHomes | Admin</title>
         <link href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css" rel="stylesheet" />
         <link href="/public/css/styles.css" rel="stylesheet" />
         <link rel="icon" type="image/x-icon" href="/public/assets/img/favicon/favicon.ico" />
@@ -182,7 +182,7 @@
                                                     <option value="hr">HR</option>
                                                     <option value="accountant">Accountant</option>
                                                     <option value="scheduler">Scheduler</option>
-                                                    <option value="director of services">Director of Services</option>
+                                                    <option value="directorofservices">Director of Services</option>
                                                 </select>
                                             </div>
                                            

@@ -89,7 +89,7 @@
             $stmt->execute();
             $stmt->close();
 
-            $subject = "Password Reset - Better Choice Homes";
+            $subject = "Password Reset - Better Choice Group Homes";
 
         $message = <<<EMAIL
             <!DOCTYPE html>
@@ -131,7 +131,7 @@
                     <p>If you didn’t request this change, please contact our support team right away.</p>
                 </div>
                 <div class="footer">
-                    &copy; {$year} Better Choice Homes. All rights reserved.
+                    &copy; {$year} Better Choice Group Homes. All rights reserved.
                 </div>
             </div>
             </body>
