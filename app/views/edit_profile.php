@@ -158,8 +158,6 @@
                         <!-- Illustration dashboard card example-->
                         <form id="updateprofile">
 
-                        <?php echo ini_get('max_file_uploads'); ?>
-
                         <div class="row">
                             <div class="col-md-12 col-lg-6 mb-3">
                                 <div class="card">
