@@ -1245,7 +1245,14 @@
         }
  
         public function generateReports(){
-        
+
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+
+            $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
+            date_default_timezone_set($timezone);
+            $session_mail = $_SESSION['better_email'];
             // Initialize variables
             $whereClauses = [];
             $params = [];
@@ -1400,6 +1407,7 @@
             echo json_encode([
                 'success' => true,
                 'data' => $schedules,
+                'generated_by' => $session_mail ?? 'Admin',
                 'pagination' => [
                     'totalRecords' => $totalRecords,
                     'totalPages' => $totalPages,
@@ -1407,7 +1415,8 @@
                     'perPage' => $perPage
                 ],
                 'summary' => [
-                    'totalHours' => $totalHoursFormatted
+                    'totalHours' => $totalHoursFormatted,
+                    'totalRecords' => $totalRecords
                 ]
             ]);
 
