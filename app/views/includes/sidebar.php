@@ -25,7 +25,7 @@
 
         <!-- Users -->
         <a class="nav-link collapsed <?= isActive(['allusers', 'createuser'], $currentPath) ?>" href="javascript:void(0);" data-bs-toggle="collapse" data-bs-target="#collapseUsers" aria-expanded="false">
-          <div class="nav-link-icon"><i data-feather="users"></i></div> Staffs
+          <div class="nav-link-icon"><i data-feather="users"></i></div> Staff
           <div class="sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
         </a>
         <div class="collapse <?= isShow(['allusers', 'createuser'], $currentPath) ?>" id="collapseUsers" data-bs-parent="#accordionSidenav">
@@ -37,7 +37,7 @@
 
         <!-- Locations -->
         <a class="nav-link collapsed <?= isActive(['createlocation', 'locations'], $currentPath) ?>" href="javascript:void(0);" data-bs-toggle="collapse" data-bs-target="#collapseLocations" aria-expanded="false">
-          <div class="nav-link-icon"><i data-feather="navigation"></i></div> Locations
+          <div class="nav-link-icon"><i data-feather="navigation"></i></div> Location
           <div class="sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
         </a>
         <div class="collapse <?= isShow(['createlocation', 'locations'], $currentPath) ?>" id="collapseLocations" data-bs-parent="#accordionSidenav">
@@ -49,7 +49,7 @@
 
         <!-- Schedules -->
         <a class="nav-link collapsed <?= isActive(['createschedule', 'allschedules'], $currentPath) ?>" href="javascript:void(0);" data-bs-toggle="collapse" data-bs-target="#collapseSchedules" aria-expanded="false">
-          <div class="nav-link-icon"><i data-feather="clock"></i></div> Schedules
+          <div class="nav-link-icon"><i data-feather="clock"></i></div> Schedule
           <div class="sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
         </a>
         <div class="collapse <?= isShow(['createschedule', 'allschedules'], $currentPath) ?>" id="collapseSchedules" data-bs-parent="#accordionSidenav">

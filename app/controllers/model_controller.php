@@ -388,7 +388,8 @@
                                 </li>
                                 <li>Complete your application profile in the app.</li>
                             </ol>
-                            <p><a href='" . PLAYSTORE_URL . "' class='button'>Download Our App</a></p>
+                            <p><a href='" . PLAYSTORE_URL . "' class='button'>Download On Android Playstore</a></p>
+                            <p><a href='" . APPLESTORE_URL . "' class='button'>Download On Apple App Store</a></p>
                         ";
                         break;
 
@@ -417,6 +418,7 @@
                                 <li>Complete your application profile in the app.</li>
                             </ol>
                             <p><a href='" . PLAYSTORE_URL . "' class='button'>Download Our App</a></p>
+                            <p><a href='" . APPLESTORE_URL . "' class='button'>Download On Apple App Store</a></p>
                         ";
                         break;
 
@@ -435,6 +437,17 @@
                                 <li>You can always change your password in your account.</li>
                             </ol>
                             <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
+                            <p>To complete your hiring process, please follow these steps:</p>
+                            <ol>
+                                <li>Download our mobile app from the Google Play Store or Apple App Store.</li>
+                                <li>Login using these credentials:<br>
+                                    <strong>Email:</strong> {$input['email']}<br>
+                                    <strong>Password:</strong> {$password}
+                                </li>
+                                <li>Complete your application profile in the app.</li>
+                            </ol>
+                            <p><a href='" . PLAYSTORE_URL . "' class='button'>Download On Android Playstore</a></p>
+                            <p><a href='" . APPLESTORE_URL . "' class='button'>Download On Apple App Store</a></p>
                         ";
                         break;
 
@@ -452,6 +465,17 @@
                                 <li>You can always change your password in your account.</li>
                             </ol>
                             <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
+                            <p>To complete your hiring process, please follow these steps:</p>
+                            <ol>
+                                <li>Download our mobile app from the Google Play Store or Apple App Store.</li>
+                                <li>Login using these credentials:<br>
+                                    <strong>Email:</strong> {$input['email']}<br>
+                                    <strong>Password:</strong> {$password}
+                                </li>
+                                <li>Complete your application profile in the app.</li>
+                            </ol>
+                            <p><a href='" . PLAYSTORE_URL . "' class='button'>Download On Android Playstore</a></p>
+                            <p><a href='" . APPLESTORE_URL . "' class='button'>Download On Apple App Store</a></p>
                         ";
                         break;
 
@@ -488,8 +512,8 @@
                                 </li>
                                 <li>Complete your application profile in the app.</li>
                             </ol>
-                            <p><a href='" . PLAYSTORE_URL . "' class='button'>Download Our App</a></p>
-                            <p><a href='" . PLAYSTORE_URL . "' class='button'>Download Our App</a></p>
+                            <p><a href='" . PLAYSTORE_URL . "' class='button'>Download On Android Playstore</a></p>
+                            <p><a href='" . APPLESTORE_URL . "' class='button'>Download On Apple App Store</a></p>
                         ";
                         break;
 
