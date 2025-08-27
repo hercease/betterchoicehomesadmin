@@ -38,7 +38,7 @@ class ViewController {
             $total_completed_hours_weekly = $this->allmodels->allCounts('total_completed_hours_weekly');
 
 
-             $role = ['hr', 'manager', 'accountant', 'scheduler', 'directorofservices'];
+             $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
 
             if($fetchuserinfo['isAdmin'] > 0 || in_array($fetchuserinfo['role'], $role)){
 
