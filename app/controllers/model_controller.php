@@ -326,7 +326,7 @@
 
         try {
             $input = [];
-            $requiredFields = $_POST['role'] == 'staff' ? ['firstname', 'lastname', 'email', 'role', 'location'] : ['firstname', 'lastname', 'email', 'role'];
+            $requiredFields = $_POST['role'] == 'dos' ? ['firstname', 'lastname', 'email', 'role'] : ['firstname', 'lastname', 'email', 'role', 'location'];
 
             foreach ($requiredFields as $field) {
                 $input[$field] = $this->allmodels->sanitizeInput($_POST[$field] ?? '');

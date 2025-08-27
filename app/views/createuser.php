@@ -255,10 +255,10 @@
                 const locationDiv = document.querySelector(".location-select");
 
                 function toggleLocationVisibility() {
-                    if (isHrSelect.value === "staff") {
-                        locationDiv.style.display = "block";
-                    } else {
+                    if (isHrSelect.value === "dos") {
                         locationDiv.style.display = "none";
+                    } else {
+                        locationDiv.style.display = "block";
                     }
                 }
 

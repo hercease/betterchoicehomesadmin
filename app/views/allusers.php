@@ -378,10 +378,10 @@
                                     <option value="hr">HR</option>
                                     <option value="accountant">Accountant</option>
                                     <option value="scheduler">Scheduler</option>
-                                    <option value="directorofservices">Director of Services</option>
+                                    <option value="dos">Director of Services</option>
                                 </select>
                             </div>
-                            <div style="display: none" class="mb-3 location-select">
+                            <div class="mb-3 location-select">
                                 <label>Select Location</label>
                                 <select name="location" class="form-select">
                                     <option value="">--------- Select location --------</option>
@@ -575,10 +575,10 @@
                     function toggleLocationVisibility() {
                         console.log(isHrSelect.value);
 
-                        if (isHrSelect.value === "staff") {
-                            locationDiv.style.display = "block";
-                        } else {
+                        if (isHrSelect.value === "dos") {
                             locationDiv.style.display = "none";
+                        } else {
+                            locationDiv.style.display = "block";
                         }
                     }
 
