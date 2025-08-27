@@ -513,49 +513,65 @@ class allmodels{
                                         <i class='fas fa-trash'></i>
                                     </a>"
                 ];
-            } else if($tabletype === 'usercertificates') {
+            } else if ($tabletype === 'usercertificates') {
+                $status = $row['isApproved']
+                    ? "<span class='badge bg-success'>Verified</span>"
+                    : "<span class='badge bg-danger'>Pending verification</span>";
 
-                $status = $row['isApproved'] ? "<span class='badge bg-success'>Verified</span>" : "<span class='badge bg-danger'>Pending verification</span>";
+                    function buildCertificateActions(array $row): string
+                    {
+                        if (!empty($row['certificate_name'])) {
+                            $file = htmlspecialchars($row['certificate_name']);
+
+                            $preview = "<a data-file='/public/assets/img/{$file}' 
+                                            data-bs-toggle='modal' data-bs-target='#previewModal' 
+                                            class='btn btn-sm btn-outline-primary me-1 preview-btn'>
+                                            <i class='fas fa-eye'></i>
+                                        </a>";
+
+                            $download = "<a href='/public/assets/img/{$file}' download 
+                                            class='btn btn-sm btn-outline-success me-1'>
+                                            <i class='fas fa-download'></i>
+                                        </a>";
+
+                            $delete = "<a data-id='{$row['id']}' data-type='certificates' 
+                                            class='btn btn-sm btn-outline-danger del_document me-1'>
+                                            <i class='fas fa-trash'></i>
+                                    </a>";
+
+                            $decision = $row['isApproved']
+                                ? "<a data-id='{$row['id']}' data-type='certificates' data-status='0' 
+                                    class='btn btn-sm btn-outline-warning decision-btn'>
+                                    <i class='fas fa-thumbs-down'></i>
+                                </a>"
+                                : "<a data-id='{$row['id']}' data-type='certificates' data-status='1' 
+                                    class='btn btn-sm btn-outline-success decision-btn'>
+                                    <i class='fas fa-thumbs-up'></i>
+                                </a>";
+
+                            return $preview . $download . $delete . $decision;
+                        }
+
+                        // Disabled buttons (when no certificate uploaded)
+                        return "
+                            <a class='btn btn-sm btn-outline-primary me-1 disabled'><i class='fas fa-eye'></i></a>
+                            <a class='btn btn-sm btn-outline-success me-1 disabled'><i class='fas fa-download'></i></a>
+                            <a class='btn btn-sm btn-outline-danger me-1 disabled'><i class='fas fa-trash'></i></a>
+                            <a class='btn btn-sm btn-outline-success disabled'><i class='fas fa-thumbs-up'></i></a>
+                        ";
+                    }
+
+                // Generate action buttons
+                $action = buildCertificateActions($row);
 
                 $data[] = [
-                    "id" => ++$i,
-                    "tag" => $row['title'],
-                    "name" => $row['certificate_name'],
-                    "status" => $status,
+                    "id"            => ++$i,
+                    "tag"           => $row['title'],
+                    "name"          => $row['certificate_name'],
+                    "status"        => $status,
                     "uploaded_date" => date('Y-m-d', strtotime($row['created_on'])),
-                    "action" => (!empty($row['certificate_name']) ? "<a data-file='/public/assets/img/".htmlspecialchars($row['certificate_name'])."' data-bs-toggle='modal' data-bs-target='#previewModal' class='btn btn-sm btn-outline-primary me-1 preview-btn'>
-                                        <i class='fas fa-eye'></i>
-                                </a>
-                                <a href='/public/assets/img/".htmlspecialchars($row['certificate_name'])."' download class='btn btn-sm btn-outline-success me-1'>
-                                    <i class='fas fa-download'></i>
-                                </a>
-                                <a data-id='".$row['id']."' data-type='certificates' class='btn btn-sm btn-outline-danger del_document me-1'>
-                                    <i class='fas fa-trash'></i>
-                                </a>" . 
-                                ($row['isApproved'] ? 
-                                "<a data-id='".$row['id']."' data-type='certificates' data-status='0' class='btn btn-sm btn-outline-warning decision-btn'>
-                                    <i class='fas fa-thumbs-down'></i>
-                                </a>" : 
-                                "<a data-id='".$row['id']."' data-type='certificates' data-status='1' class='btn btn-sm btn-outline-success decision-btn'>
-                                    <i class='fas fa-thumbs-up'></i>
-                                </a>") 
-
-                                :
-
-                                "<a class='btn btn-sm btn-outline-primary me-1 disabled'>
-                                    <i class='fas fa-eye'></i>
-                                </a>
-                                <a class='btn btn-sm btn-outline-success me-1 disabled'>
-                                    <i class='fas fa-download'></i>
-                                </a>
-                                <a class='btn btn-sm btn-outline-danger me-1 disabled'>
-                                    <i class='fas fa-trash'></i>
-                                </a>
-                                <a class='btn btn-sm btn-outline-success disabled'>
-                                    <i class='fas fa-thumbs-up'></i>
-                                </a>")
+                    "action"        => $action,
                 ];
-                
             }
         }
     
@@ -565,6 +581,7 @@ class allmodels{
             "data" => $data
         ];
     }
+
 
     public function getTotalRecords($tabletype, $userId) {
 

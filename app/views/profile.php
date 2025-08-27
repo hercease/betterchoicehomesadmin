@@ -223,7 +223,7 @@
                                             <tr>
                                                 <th scope="row">Expiry Date</th>
                                                 <td>
-                                                    <?php echo $data['user_info']['userdetails']['driver_license_expiry_date'] ?  date('D, d M Y h:i a', strtotime($data['user_info']['userdetails']['driver_license_expiry_date'])) : ''; ?>
+                                                    <?php echo $data['user_info']['userdetails']['driver_license_expiry_date'] ?  date('D, d M Y', strtotime($data['user_info']['userdetails']['driver_license_expiry_date'])) : ''; ?>
                                                 </td>
                                             </tr>
                                         </tbody>
