@@ -81,7 +81,7 @@ class ViewController {
             $total_users = $this->allmodels->allCounts('total_users');
             $all_locations = $this->allmodels->fetchlocations();
 
-             $role = ['hr', 'manager', 'accountant', 'scheduler', 'directorofservices'];
+             $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
 
             if($fetchuserinfo['isAdmin'] > 0 || in_array($fetchuserinfo['role'], $role)){
 
@@ -116,7 +116,7 @@ class ViewController {
             $fetchuserinfo = $this->allmodels->getUserInfo($email);
             $total_locations = $this->allmodels->allCounts('total_location');
 
-             $role = ['hr', 'manager', 'accountant', 'scheduler', 'directorofservices'];
+             $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
 
             if($fetchuserinfo['isAdmin'] > 0 || in_array($fetchuserinfo['role'], $role)){
 
@@ -149,7 +149,7 @@ class ViewController {
             date_default_timezone_set($timezone);
             $fetchuserinfo = $this->allmodels->getUserInfo($email);
             $all_locations = $this->allmodels->fetchlocations();
-            $role = ['hr', 'manager', 'accountant', 'scheduler', 'directorofservices'];
+            $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
 
             if($fetchuserinfo['isAdmin'] > 0 || in_array($fetchuserinfo['role'], $role)){
 
@@ -181,7 +181,7 @@ class ViewController {
             date_default_timezone_set($timezone);
             $fetchuserinfo = $this->allmodels->getUserInfo($email);
 
-             $role = ['hr', 'manager', 'accountant', 'scheduler', 'directorofservices'];
+             $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
 
             if($fetchuserinfo['isAdmin'] > 0 || in_array($fetchuserinfo['role'], $role)){
 
@@ -212,7 +212,7 @@ class ViewController {
             $fetchuserinfo = $this->allmodels->getUserInfo($email);
             $all_locations = $this->allmodels->fetchlocations();
 
-             $role = ['hr', 'manager', 'accountant', 'scheduler', 'directorofservices'];
+             $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
 
             if($fetchuserinfo['isAdmin'] > 0 || in_array($fetchuserinfo['role'], $role)){
 
@@ -245,7 +245,7 @@ class ViewController {
             date_default_timezone_set($timezone);
             $fetchadmininfo = $this->allmodels->getUserInfo($email);
             $fetchuserinfo = $this->allmodels->getUserInfo($userId);
-            $role = ['hr', 'manager', 'accountant', 'scheduler', 'directorofservices'];
+            $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
 
             if($fetchadmininfo['isAdmin'] > 0 || in_array($fetchadmininfo['role'], $role)){
 
@@ -276,7 +276,7 @@ class ViewController {
             $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
             date_default_timezone_set($timezone);
             $fetchadmininfo = $this->allmodels->getUserInfo($email);
-            $role = ['hr', 'manager', 'accountant', 'scheduler', 'directorofservices'];
+            $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
 
             if($fetchadmininfo['isAdmin'] > 0 || in_array($fetchadmininfo['role'], $role)){
 
@@ -305,7 +305,7 @@ class ViewController {
             $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
             date_default_timezone_set($timezone);
             $fetchadmininfo = $this->allmodels->getUserInfo($email);
-            $role = ['hr', 'manager', 'accountant', 'scheduler', 'directorofservices'];
+            $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
 
             if($fetchadmininfo['isAdmin'] > 0 || in_array($fetchadmininfo['role'], $role)){
 
@@ -336,7 +336,7 @@ class ViewController {
             $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
             date_default_timezone_set($timezone);
             $fetchadmininfo = $this->allmodels->getUserInfo($email);
-            $role = ['hr', 'manager', 'accountant', 'scheduler', 'directorofservices'];
+            $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
 
             if($fetchadmininfo['isAdmin'] > 0 || in_array($fetchadmininfo['role'], $role)){
 
@@ -367,7 +367,7 @@ class ViewController {
             $fetchadmininfo = $this->allmodels->getUserInfo($email);
             $total_schedules = $this->allmodels->allCounts('total_schedule');
             $all_locations = $this->allmodels->fetchlocations();
-            $role = ['hr', 'manager', 'accountant', 'scheduler', 'directorofservices'];
+            $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
 
             if($fetchadmininfo['isAdmin'] > 0 || in_array($fetchadmininfo['role'], $role)){
                 
@@ -400,7 +400,7 @@ class ViewController {
             $fetchuserinfo = $this->allmodels->getUserInfo($email);
             $all_locations = $this->allmodels->fetchlocations();
 
-             $role = ['hr', 'manager', 'accountant', 'scheduler', 'directorofservices'];
+             $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
 
             if($fetchuserinfo['isAdmin'] > 0 || in_array($fetchuserinfo['role'], $role)){
 
