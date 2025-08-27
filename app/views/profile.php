@@ -613,7 +613,7 @@
                     const id = $(this).data('id');
                     const status = $(this).data('status');
                     const type = $(this).data('type');
-                    const msg = status
+                    const msg = status === 0
                         ? 'Are you sure you want to reject this document?'
                         : 'Are you sure you want to approve this document?';
 

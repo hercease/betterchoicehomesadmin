@@ -469,7 +469,7 @@ class allmodels{
                     "name" => $row['name'],
                     "status" => $status,
                     "uploaded_date" => date('Y-m-d', strtotime($row['created_on'])),
-                    "action" => "<a data-file='/public/assets/img/".htmlspecialchars($row['name'])."' data-bs-toggle='modal' data-bs-target='#previewModal' class='btn btn-sm btn-outline-primary me-1 preview-btn'>
+                    "action" => (!empty($row['name']) ? "<a data-file='/public/assets/img/".htmlspecialchars($row['name'])."' data-bs-toggle='modal' data-bs-target='#previewModal' class='btn btn-sm btn-outline-primary me-1 preview-btn'>
                                         <i class='fas fa-eye'></i>
                                     </a>
                                     <a href='/public/assets/img/".htmlspecialchars($row['name'])."' download class='btn btn-sm btn-outline-success me-1'>
@@ -477,8 +477,17 @@ class allmodels{
                                     </a>
                                     <a data-id='".$row['id']."' data-type='documents' class='btn btn-sm btn-outline-danger del_document me-1'>
                                         <i class='fas fa-trash'></i>
-                                    </a>" . 
-                                    ($row['isApproved'] ? 
+                                    </a>" : 
+                                    "<a class='btn btn-sm btn-outline-primary me-1' disabled>
+                                        <i class='fas fa-eye'></i>
+                                    </a>
+                                    <a class='btn btn-sm btn-outline-success me-1' disabled>
+                                        <i class='fas fa-download'></i>
+                                    </a>
+                                    <a class='btn btn-sm btn-outline-danger me-1' disabled>
+                                        <i class='fas fa-trash'></i>
+                                    </a>") . 
+                                    ((bool)$row['isApproved'] ? 
                                         "<a data-id='".$row['id']."' data-type='documents' data-status='0' class='btn btn-sm btn-outline-warning decision-btn'>
                                             <i class='fas fa-thumbs-down'></i>
                                         </a>" : 
@@ -514,7 +523,7 @@ class allmodels{
                     "name" => $row['certificate_name'],
                     "status" => $status,
                     "uploaded_date" => date('Y-m-d', strtotime($row['created_on'])),
-                    "action" => "<a data-file='/public/assets/img/".htmlspecialchars($row['certificate_name'])."' data-bs-toggle='modal' data-bs-target='#previewModal' class='btn btn-sm btn-outline-primary me-1 preview-btn'>
+                    "action" => (!empty($row['certificate_name']) ? "<a data-file='/public/assets/img/".htmlspecialchars($row['certificate_name'])."' data-bs-toggle='modal' data-bs-target='#previewModal' class='btn btn-sm btn-outline-primary me-1 preview-btn'>
                                         <i class='fas fa-eye'></i>
                                 </a>
                                 <a href='/public/assets/img/".htmlspecialchars($row['certificate_name'])."' download class='btn btn-sm btn-outline-success me-1'>
@@ -524,12 +533,27 @@ class allmodels{
                                     <i class='fas fa-trash'></i>
                                 </a>" . 
                                 ($row['isApproved'] ? 
-                                    "<a data-id='".$row['id']."' data-type='certificates' data-status='0' class='btn btn-sm btn-outline-warning decision-btn'>
-                                        <i class='fas fa-thumbs-down'></i>
-                                    </a>" : 
-                                    "<a data-id='".$row['id']."' data-type='certificates' data-status='1' class='btn btn-sm btn-outline-success decision-btn'>
-                                        <i class='fas fa-thumbs-up'></i>
-                                    </a>")
+                                "<a data-id='".$row['id']."' data-type='certificates' data-status='0' class='btn btn-sm btn-outline-warning decision-btn'>
+                                    <i class='fas fa-thumbs-down'></i>
+                                </a>" : 
+                                "<a data-id='".$row['id']."' data-type='certificates' data-status='1' class='btn btn-sm btn-outline-success decision-btn'>
+                                    <i class='fas fa-thumbs-up'></i>
+                                </a>") 
+
+                                :
+
+                                "<a class='btn btn-sm btn-outline-primary me-1 disabled'>
+                                    <i class='fas fa-eye'></i>
+                                </a>
+                                <a class='btn btn-sm btn-outline-success me-1 disabled'>
+                                    <i class='fas fa-download'></i>
+                                </a>
+                                <a class='btn btn-sm btn-outline-danger me-1 disabled'>
+                                    <i class='fas fa-trash'></i>
+                                </a>
+                                <a class='btn btn-sm btn-outline-success disabled'>
+                                    <i class='fas fa-thumbs-up'></i>
+                                </a>")
                 ];
                 
             }
