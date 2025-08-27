@@ -56,7 +56,7 @@
             .results-grid { display:grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; }
             }
             @media (min-width: 1400px) {
-            .results-grid { grid-template-columns: repeat(3, 1fr); }
+            .results-grid { grid-template-columns: repeat(2, 1fr); }
             }
 
             /* Centering the loader */
