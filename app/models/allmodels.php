@@ -908,7 +908,7 @@ class allmodels{
             // Sanitize inputs
             $isUpdate = !empty($input['id']);
             $timestamp = date('Y-m-d H:i:s');
-            $status = $input['role'] == "staff" ? 0 : 1;
+            $status = 0;
 
             // Begin transaction
             $this->db->begin_transaction();
