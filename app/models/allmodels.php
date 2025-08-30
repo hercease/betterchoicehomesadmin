@@ -914,7 +914,7 @@ class allmodels{
             $this->db->begin_transaction();
 
             if ($isUpdate) {
-                $sql = "UPDATE users SET firstname = ?, lastname = ?, email = ?, location = ? WHERE id = ?";
+                $sql = "UPDATE users SET firstname = ?, lastname = ?, email = ?, location = ?, role = ? WHERE id = ?";
             } else {
                 $sql = "INSERT INTO users (firstname, lastname, email, password, location, role, isActive, reg_date) 
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
@@ -932,6 +932,7 @@ class allmodels{
                     $input['lastname'],
                     $input['email'],
                     $input['location'],
+                    $input['role'],
                     $input['id']
                 );
             } else {
