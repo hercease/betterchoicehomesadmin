@@ -816,7 +816,7 @@
 
 
                     const card = document.createElement('div');
-                    card.className = 'col-12 col-md-6 col-xl-4';
+                    card.className = 'col-12 col-md-6 col-xl-6';
                     card.innerHTML = `
                     <div class="card schedule-card h-100">
                         <div class="card-body">
@@ -842,20 +842,20 @@
 
                         <div class="row g-3">
                             <div class="col-6">
-                            <div class="metric"><i class="bi bi-clock"></i>
-                                <div>
-                                <div class="small text-muted">Start</div>
-                                <div class="fw-semibold">${escapeHTML(r.start_time_fmt || r.start_time)}</div>
+                                <div class="metric"><i class="bi bi-clock"></i>
+                                    <div>
+                                        <div class="small text-muted">Start</div>
+                                        <div class="fw-semibold">${escapeHTML(r.start_time_fmt || r.start_time)}</div>
+                                    </div>
                                 </div>
-                            </div>
                             </div>
                             <div class="col-6">
-                            <div class="metric"><i class="bi bi-clock-history"></i>
-                                <div>
-                                <div class="small text-muted">End</div>
-                                <div class="fw-semibold">${escapeHTML(r.end_time_fmt || r.end_time)}</div>
+                                <div class="metric"><i class="bi bi-clock-history"></i>
+                                    <div>
+                                        <div class="small text-muted">End</div>
+                                        <div class="fw-semibold">${escapeHTML(r.end_time_fmt || r.end_time)}</div>
+                                    </div>
                                 </div>
-                            </div>
                             </div>
 
                             <div class="col-6">
@@ -878,7 +878,7 @@
 
                         <hr class="my-3">
 
-                        <div class="d-flex flex-wrap gap-3">
+                        <div class="d-flex justify-content-between gap-3">
                             <div class="metric"><i class="bi bi-hourglass-split"></i>
                             <div>
                                 <div class="small text-muted">Scheduled</div>
