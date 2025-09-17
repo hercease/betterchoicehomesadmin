@@ -555,7 +555,7 @@
                                         //showToast.error(errorThrown);
                                         iziToast.warning({
                                             title: 'Error',
-                                            message: 'An error occurred, kindly check your network',
+                                            message: 'An error occurred ' + errorThrown,
                                         });
                                     }
                                 });
