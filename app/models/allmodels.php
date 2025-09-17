@@ -927,7 +927,7 @@ class allmodels{
 
             if ($isUpdate) {
                 $stmt->bind_param(
-                    "ssssi",
+                    "sssssi",
                     $input['firstname'],
                     $input['lastname'],
                     $input['email'],
