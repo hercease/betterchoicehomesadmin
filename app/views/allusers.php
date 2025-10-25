@@ -783,7 +783,7 @@ function renderCard(s) {
                 </div>
 
                 <div class="d-flex gap-2 flex-wrap align-items-center mt-2">
-                    <div class="tiny"><strong class="muted">Role:</strong> <span class="badge bg-dark text-light">${s.role}</span></div>
+                    <div class="tiny"><strong class="muted">Role:</strong> <span class="badge bg-dark text-light text-uppercase">${s.role}</span></div>
                     <div class="tiny"><strong class="muted">Address:</strong> <span class="badge bg-info text-dark">${s.address}</span></div>
                     <div class="tiny"><strong class="muted">Reg:</strong> <span class="muted">${s.reg_date}</span></div>
                 </div>
