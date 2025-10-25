@@ -183,6 +183,7 @@
                                                     <option value="accountant">Accountant</option>
                                                     <option value="scheduler">Scheduler</option>
                                                     <option value="dos">Director of Services</option>
+                                                    <option value="ed">Executive Director</option>
                                                 </select>
                                             </div>
                                            

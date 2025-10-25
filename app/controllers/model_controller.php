@@ -128,7 +128,7 @@
                     <p>Here is your new temporary password:</p>
                     <div class="password-box">{$password}</div>
                     <p>For your security, please log in and change your password immediately.</p>
-                    <p>If you didn’t request this change, please contact our support team right away.</p>
+                    <p>If you did not request this change, please contact our support team right away.</p>
                 </div>
                 <div class="footer">
                     &copy; {$year} Better Choice Group Homes. All rights reserved.
@@ -367,7 +367,7 @@
                     case 'hr':
                         $roleMessage = "
                             <h2>Hello {$name},</h2>
-                            <p>Welcome to the team! We’re excited to have you step into your new role in Human Resources. 
+                            <p>Welcome to the team! We are excited to have you step into your new role in Human Resources. 
                             Your expertise will be key in supporting our people and cultivating a positive, inclusive workplace culture.
                             </p>
                             <p>To get started, please log in and complete your profile using the link below:</p>
@@ -396,7 +396,7 @@
                     case 'manager':
                         $roleMessage = "
                             <h2>Dear {$name},</h2>
-                            <p>We’re excited to welcome you as a Manager! Your leadership will be vital in guiding our team, 
+                            <p>We are excited to welcome you as a Manager! Your leadership will be vital in guiding our team, 
                             ensuring quality service delivery, and fostering a supportive environment for both staff and clients.
                             </p>
                             <p>To get started, please log in and complete your profile using the link below:</p>
@@ -425,7 +425,7 @@
                     case 'scheduler':
                         $roleMessage = "
                             <h2>Hi {$name},</h2>
-                            <p>Welcome aboard! We’re excited to have you join us as a Scheduler. Your attention to detail and 
+                            <p>Welcome aboard! We are excited to have you join us as a Scheduler. Your attention to detail and 
                             coordination will help keep everything running smoothly and ensure our team stays organized and efficient.
                             </p>
                             <p>To get started, please log in and complete your profile information using the link below:</p>
@@ -454,7 +454,7 @@
                     case 'accountant':
                         $roleMessage = "
                             <h2>Hello {$name},</h2>
-                            <p>We’re happy to have you join as an <strong>Accountant</strong>. 
+                            <p>We are happy to have you join as an <strong>Accountant</strong>. 
                             Your attention to detail and financial stewardship is vital to our growth and stability.</p>
                             <p>To get started, please log in and complete your profile information using the link below:</p>
                             <ol>
@@ -482,7 +482,24 @@
                     case 'dos':
                         $roleMessage = "
                             <h2>Dear {$name},</h2>
-                            <p>We’re thrilled to welcome you to our executive team as the Director of Services! Your experience and leadership will be instrumental 
+                            <p>We are thrilled to welcome you to our executive team as the Director of Services! Your experience and leadership will be instrumental 
+                            in enhancing the quality of our support and driving positive outcomes for both our clients and our team.</p>
+                            <p>To get started, please log in and complete your profile using the link below so we can finish setting everything up:</p>
+                            <ol>
+                                <li>Login using these credentials:<br>
+                                    <strong>Email:</strong> {$input['email']}<br>
+                                    <strong>Password:</strong> {$password}
+                                </li>
+                                <li>You can always change your password in your account.</li>
+                            </ol>
+                            <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
+                        ";
+                        break;
+
+                    case 'ed':
+                        $roleMessage = "
+                            <h2>Dear {$name},</h2>
+                            <p>We are thrilled to welcome you to our executive team as the Executive Director! Your experience and leadership will be instrumental 
                             in enhancing the quality of our support and driving positive outcomes for both our clients and our team.</p>
                             <p>To get started, please log in and complete your profile using the link below so we can finish setting everything up:</p>
                             <ol>
@@ -499,8 +516,8 @@
                     case 'staff':
                         $roleMessage = "
                             <h2>Dear {$name},</h2>
-                            <p>Welcome! We’re so happy to have you on board as part of our Direct Support Staff. 
-                            Your role is essential in helping our clients live fulfilling lives, and we’re grateful you’ve chosen to be part of this mission.
+                            <p>Welcome! We are so happy to have you on board as part of our Direct Support Staff. 
+                            Your role is essential in helping our clients live fulfilling lives, and we are grateful you have chosen to be part of this mission.
                             </p>
                             <p>Thank you for joining <strong>Better Choice Group Homes</strong>. 
                             <p>To complete your hiring process, please follow these steps:</p>
@@ -721,7 +738,7 @@
                 case 'staff':
                     $roleMessage = "
                         <h2>Dear {$name},</h2>
-                        <p>We’re pleased to inform you that your <strong>Staff account</strong> has been activated. 
+                        <p>We are pleased to inform you that your <strong>Staff account</strong> has been activated. 
                         Please log in via the mobile app to continue with your application and daily tasks.</p>
                         <p><a href='" . PLAYSTORE_URL . "' class='button playstore-button'>Download Our App</a></p>
                     ";
