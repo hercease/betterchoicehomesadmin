@@ -36,12 +36,11 @@
 
             // Define allowed roles for admin access
             $allowedRoles = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
+            $fetch_all_roles = $this->allmodels->fetchAllRoles()['roles'];
+            $role_tags = array_column($fetch_all_roles, 'tag');
 
             // Check if user is either an admin or has an allowed role
-            if (!in_array($userInfo['role'], $allowedRoles)) {
-                throw new Exception("Unauthorized access. Insufficient privileges.");
-            }
-
+            if ($userInfo['isAdmin'] > 0 || in_array($userInfo['role'], $role_tags)) {
             //error_log(print_r($userInfo,true));
 
             session_start();
@@ -57,6 +56,10 @@
                 'status' => true,
                 'message' => 'Login was successful, redirecting you to dashboard...',
             ]);
+
+            } else {
+              throw new Exception("Unauthorized access. Insufficient privileges.");
+            }
 
         } catch (Exception $e) {
             // Handle any exceptions that occur during the login process
@@ -278,32 +281,42 @@
                     }
                 }
 
-                $input['id'] = isset($_POST['id']) ? intval($_POST['id']) : null;
-                //check if address exists
-                $existingLocation = !isset($_POST['id']) && $this->allmodels->checkLocationExists($input['address'], $input['city'], $input['province']);
-                if ($existingLocation) {
-                    throw new Exception("This address already exists in the database");
+                $userInfo = $this->allmodels->getUserInfo($_SESSION['better_email']);
+                // Define allowed roles for admin access
+                $user_role = $userInfo['role'];
+                if($userInfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'create.location')){
+                  
+
+                    $input['id'] = isset($_POST['id']) ? intval($_POST['id']) : null;
+                    //check if address exists
+                    $existingLocation = !isset($_POST['id']) && $this->allmodels->checkLocationExists($input['address'], $input['city'], $input['province']);
+                    if ($existingLocation) {
+                        throw new Exception("This address already exists in the database");
+                    }
+
+                    $timezone = $_POST['timezone'] ?? 'America/Toronto';
+                    date_default_timezone_set($timezone);
+                    //save into database
+                    $result = $this->allmodels->saveLocation($input);
+
+                    if ($result['status']==false) {
+                        $msg = isset($_POST['id']) ? "Failed to update location" : "Failed to save location";
+                        throw new Exception($msg);
+                    }
+
+                    $logmessage = isset($_POST['id']) ? 'Updated Location: ' . $input['address'] . ' successfully' : 'Saved Location: ' . $input['address'] . ' successfully';
+                    $this->allmodels->logActivity($_SESSION['better_email'], $_SESSION['userid'], 'update-location', $logmessage,  date('Y-m-d H:i:s'));
+
+
+                    $this->db->commit();
+                    echo json_encode([
+                        'status' => true,
+                        'message' => isset($_POST['id']) ? 'Location updated successfully' : 'Location saved successfully'
+                    ]);
+
+                } else {
+                    throw new Exception("Unauthorized access. Insufficient privileges.");
                 }
-
-                $timezone = $_POST['timezone'] ?? 'America/Toronto';
-                date_default_timezone_set($timezone);
-                //save into database
-                $result = $this->allmodels->saveLocation($input);
-
-                if ($result['status']==false) {
-                    $msg = isset($_POST['id']) ? "Failed to update location" : "Failed to save location";
-                    throw new Exception($msg);
-                }
-
-                $logmessage = isset($_POST['id']) ? 'Updated Location: ' . $input['address'] . ' successfully' : 'Saved Location: ' . $input['address'] . ' successfully';
-                $this->allmodels->logActivity($_SESSION['better_email'], $_SESSION['userid'], 'update-location', $logmessage,  date('Y-m-d H:i:s'));
-
-
-                $this->db->commit();
-                echo json_encode([
-                    'status' => true,
-                    'message' => isset($_POST['id']) ? 'Location updated successfully' : 'Location saved successfully'
-                ]);
 
             } catch (Exception $e) {
                 $this->db->rollback();
@@ -334,6 +347,12 @@
                     throw new Exception(ucfirst($field) . " is required");
                 }
             }
+
+            $userInfo = $this->allmodels->getUserInfo($_SESSION['better_email']);
+            // Define allowed roles for admin access
+            $user_role = $userInfo['role'];
+            if($userInfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'create.staff')){
+             
 
             if (!filter_var($input['email'], FILTER_VALIDATE_EMAIL)) {
                 throw new Exception("Invalid email format");
@@ -593,6 +612,9 @@
                 'status' => true,
                 'message' => $isNew ? 'User created successfully' : 'User updated successfully'
             ]);
+        } else {
+            throw new Exception("Unauthorized access. Insufficient privileges.");
+        }
 
         } catch (Exception $e) {
             $this->db->rollback();
@@ -676,10 +698,17 @@
             $status = intval($_POST['status']);
             $isActive = $status === 1 ? 0 : 1;
             $userInfo = $this->allmodels->getUserInfo($id);
+            if (!$userInfo) {
+                throw new Exception("User not found");
+            }
+            $fetch_user_role = $this->allmodels->getUserInfo($_SESSION['better_email']);
             $name = $userInfo['firstname'].' '.$userInfo['lastname'];
             $loginUrl = BASE_URL . 'login';
             $year = date('Y');
             $logo = BASE_URL . 'public/assets/img/better-icon-removebg-preview.png';
+
+            if($fetch_user_role['isAdmin'] > 0 || $this->allmodels->roleHasPermission($fetch_user_role['role'], 'change.staffstatus')){
+              
             
             $stmt = $this->db->prepare("UPDATE users SET isActive = ? WHERE id = ?");
             $stmt->bind_param("ii", $isActive, $id);
@@ -808,7 +837,9 @@
                 'message' => $status === 1 ? "Account deactivated successfully" : "Account activated successfully"
             ]);
 
-            
+        } else {
+            throw new Exception("Unauthorized access {$userInfo['isAdmin']}. Insufficient privileges.");
+        }
 
         } catch (Exception $e) {
             // Rollback on failure
@@ -836,6 +867,12 @@
             echo json_encode(['status' => false, 'message' => 'Location and date range are required']);
             return;
         }
+
+        $userInfo = $this->allmodels->getUserInfo($_SESSION['better_email']);
+        // Define allowed roles for admin access
+        $user_role = $userInfo['role'];
+        if($userInfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'create.schedule')){
+          
 
         $location_details = $this->allmodels->fetchlocations($locationid);
         $location = $location_details[0]['address'].', '.$location_details[0]['city'].', '.$location_details[0]['province'];
@@ -926,6 +963,11 @@
             'status' => true,
             'html' => $html
         ]);
+
+        } else {
+            echo json_encode(['status' => false, 'message' => 'Unauthorized access. Insufficient privileges.']);
+            return;
+        }
     }
 
         public function saveSchedule(){
@@ -936,7 +978,13 @@
             $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
             date_default_timezone_set($timezone);
 
+            $userInfo = $this->allmodels->getUserInfo($_SESSION['better_email']);
+
+            $user_role = $userInfo['role'];
+        
             try {
+
+                if($userInfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'create.schedule')){
 
                 $startTimes  = $this->allmodels->sanitizeInput($_POST['start_time'] ?? []);
                 $endTimes    = $this->allmodels->sanitizeInput($_POST['end_time'] ?? []);
@@ -1009,6 +1057,11 @@
                     'message' => 'Schedule saved successfully'
                 ]);
 
+                } else {
+                    throw new Exception("Unauthorized access. Insufficient privileges.");
+                }
+            
+
             } catch (Exception $e) {
                 $this->db->rollback();
 
@@ -1028,9 +1081,16 @@
             $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
             date_default_timezone_set($timezone);
 
+            $userInfo = $this->allmodels->getUserInfo($_SESSION['better_email']);
+
+            $user_role = $userInfo['role'];
+
             $this->db->begin_transaction();
 
             try{
+
+                if($userInfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'update.schedule')){
+              
 
                 $input = [];
                 $requiredFields = ['start_time', 'end_time', 'shift_type', 'pay_per_hour', 'id'];
@@ -1064,8 +1124,11 @@
                 }
                 $stmt->close();
 
-                
+                } else {
+                    throw new Exception("Unauthorized access. Insufficient privileges.");
+                }
 
+    
             }catch(Exception $e){
                 $this->db->rollback();
 
@@ -1147,6 +1210,12 @@
             $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
             date_default_timezone_set($timezone);
 
+            $userInfo = $this->allmodels->getUserInfo($_SESSION['better_email']);
+
+            $user_role = $userInfo['role'];
+            if($userInfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'delete.staffdoc')){
+             
+
             $id = $_POST['id'];
             $type = $_POST['type'];
 
@@ -1188,6 +1257,15 @@
                 'message' => 'Document Cleared Successfully'
             ]);
 
+            } else {
+
+                echo json_encode([
+                    'status' => false,
+                    'message' => 'Unauthorized access. Insufficient privileges.'
+                ]);
+                exit;
+            }
+
         }
 
         public function documentActivation(){
@@ -1198,9 +1276,15 @@
 
             // Use default timezone or fallback
             date_default_timezone_set($_SESSION['timezone'] ?? 'America/Toronto');
+            $userInfo = $this->allmodels->getUserInfo($_SESSION['better_email']);
 
+            $user_role = $userInfo['role'];
+            
+    
 
             try{
+                
+                if($userInfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'activate.staffdoc')){
                 // Sanitize and validate input
                 $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
                 $status = isset($_POST['status']) ? intval($_POST['status']) : null;
@@ -1258,6 +1342,10 @@
                     'status' => true,
                     'message' => "Document {$action}d successfully"
                 ]);
+
+            } else {
+                throw new Exception("Unauthorized access. Insufficient privileges.");
+            }
 
             } catch(Exception $e) {
                 echo json_encode([
@@ -1440,6 +1528,11 @@
             $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
             date_default_timezone_set($timezone);
             $session_mail = $_SESSION['better_email'];
+            $userInfo = $this->allmodels->getUserInfo($_SESSION['better_email']);
+
+            $user_role = $userInfo['role'];
+            if($userInfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'generate.report')){
+              
             // Initialize variables
             $whereClauses = [];
             $params = [];
@@ -1609,6 +1702,11 @@
             $stmt->close();
             $this->db->close();
 
+            } else {
+                echo json_encode(['status' => false, 'message' => 'Unauthorized access. Insufficient privileges.']);
+                return;
+            }
+
         }
 
         public function fetchStaffsList() {
@@ -1752,156 +1850,519 @@
             $this->db->close();
         }
 
-        public function scheduleTesting(){
-
+       public function scheduleTesting(){
             $action = $_POST['action'] ?? ($_POST['action'] ?? '');
 
             try {
+                if ($action === 'month') {
+                    $month = $_POST['month'] ?? date('Y-m');
+                    // Count schedules by date
+                    $sql = "
+                    SELECT DATE(schedule_date) AS d, COUNT(*) AS cnt
+                    FROM scheduling
+                    WHERE DATE_FORMAT(schedule_date, '%Y-%m') = ?
+                    GROUP BY DATE(schedule_date)
+                    ORDER BY d
+                    ";
+                    $stmt = $this->db->prepare($sql);
+                    $stmt->bind_param('s', $month);
+                    $stmt->execute();
+                    $res = $stmt->get_result();
 
-            if ($action === 'month') {
-                $month = $_POST['month'] ?? date('Y-m');
-                // Count schedules by date
-                $sql = "
-                SELECT DATE(schedule_date) AS d, COUNT(*) AS cnt
-                FROM scheduling
-                WHERE DATE_FORMAT(schedule_date, '%Y-%m') = ?
-                GROUP BY DATE(schedule_date)
-                ORDER BY d
-                ";
-                $stmt = $this->db->prepare($sql);
-                $stmt->bind_param('s', $month);
-                $stmt->execute();
-                $res = $stmt->get_result();
-
-                $marked = [];
+                    $marked = [];
                     while ($r = $res->fetch_assoc()) {
-                    $d = $r['d'];
-                    $marked[$d] = ['count' => (int)$r['cnt']];
-                }
-
-                echo json_encode([
-                    'status' => true,
-                    'marked_dates'=>$marked
-                ]);
-            }
-
-            if ($action === 'day') {
-                $date = $_POST['date'] ?? date('Y-m-d');
-                $name = trim($_POST['name'] ?? '');
-                $location = trim($_POST['location'] ?? '');
-                $status = $_POST['status'] ?? '';
-
-                // Build filter conditions
-                $conds = ["DATE(schedule_date) = ?"];
-                $bind  = [$date];
-                $types = "s";
-
-                if ($name !== '') {
-                    $conds[] = "(u.firstname LIKE CONCAT('%', ?, '%') OR u.lastname LIKE CONCAT('%', ?, '%'))";
-                    $bind[] = $name; $bind[] = $name;
-                    $types .= "ss";
-                }
-                if ($location !== '') {
-                    $conds[] = "(s.location_name LIKE CONCAT('%', ?, '%'))";
-                    $bind[] = $location;
-                    $types .= "s";
-                }
-
-                // Status filter (completed/in-progress/pending)
-                if (!empty($status)) {
-                    if ($status === 'completed') {
-                        $conds[] = "(s.clockin IS NOT NULL AND s.clockout IS NOT NULL)";
-                    } elseif ($status === 'in-progress') {
-                        $conds[] = "(sclockin IS NOT NULL AND s.clockout IS NULL)";
-                    } elseif ($status === 'scheduled') {
-                        $conds[] = "(s.clockin IS NULL)";
+                        $d = $r['d'];
+                        $marked[$d] = ['count' => (int)$r['cnt']];
                     }
+
+                    echo json_encode([
+                        'status' => true,
+                        'marked_dates' => $marked
+                    ]);
                 }
+                elseif ($action === 'day') {
+                    $date = $_POST['date'] ?? date('Y-m-d');
+                    $name = trim($_POST['name'] ?? '');
+                    $location = trim($_POST['location'] ?? '');
+                    $status = $_POST['status'] ?? '';
 
-                // Calculate cross-midnight safely by adding a day if end <= start
-                $sql = "
-                SELECT
-                    s.id,
-                    s.email,
-                    CONCAT(u.firstname, ' ', u.lastname) AS staff_name,
-                    s.location_name AS location,
-                    s.schedule_date AS date,
+                    // Build filter conditions
+                    $conds = ["DATE(schedule_date) = ?"];
+                    $bind  = [$date];
+                    $types = "s";
 
-                    s.start_time,
-                    s.end_time,
-                    s.clockin,
-                    s.clockout,
-                    s.pay_per_hour,
-                    s.shift_type,
-                    s.overnight_type,
+                    if ($name !== '') {
+                        $conds[] = "(u.firstname LIKE CONCAT('%', ?, '%') OR u.lastname LIKE CONCAT('%', ?, '%'))";
+                        $bind[] = $name; $bind[] = $name;
+                        $types .= "ss";
+                    }
+                    if ($location !== '') {
+                        $conds[] = "(s.location_name LIKE CONCAT('%', ?, '%'))";
+                        $bind[] = $location;
+                        $types .= "s";
+                    }
 
-                    -- Pretty formats
-                    DATE_FORMAT(s.start_time, '%h:%i %p') AS start_time_fmt,
-                    DATE_FORMAT(s.end_time,   '%h:%i %p') AS end_time_fmt,
-                    IFNULL(DATE_FORMAT(s.clockin, '%h:%i %p'), NULL)  AS clockin_fmt,
-                    IFNULL(DATE_FORMAT(s.clockout, '%h:%i %p'), NULL) AS clockout_fmt,
+                    // Status filter (completed/in-progress/pending)
+                    if (!empty($status)) {
+                        if ($status === 'completed') {
+                            $conds[] = "(s.clockin IS NOT NULL AND s.clockout IS NOT NULL)";
+                        } elseif ($status === 'in-progress') {
+                            $conds[] = "(s.clockin IS NOT NULL AND s.clockout IS NULL)";
+                        } elseif ($status === 'scheduled') {
+                            $conds[] = "(s.clockin IS NULL)";
+                        }
+                    }
 
-                    -- scheduled hours (decimal)
-                    (
-                    CASE
-                        WHEN TIME(s.end_time) <= TIME(s.start_time)
-                        THEN TIMESTAMPDIFF(SECOND, s.start_time, DATE_ADD(s.end_time, INTERVAL 1 DAY)) / 3600
-                        ELSE TIMESTAMPDIFF(SECOND, s.start_time, s.end_time) / 3600
-                    END
-                    ) AS scheduled_hours,
+                    // Calculate cross-midnight safely by adding a day if end <= start
+                    $sql = "
+                    SELECT
+                        s.id,
+                        s.email,
+                        CONCAT(u.firstname, ' ', u.lastname) AS staff_name,
+                        s.location_name AS location,
+                        s.schedule_date AS date,
 
-                    -- hours worked (decimal) — only if both exist
-                    (
-                    CASE
-                        WHEN s.clockin IS NOT NULL AND s.clockout IS NOT NULL THEN
+                        s.start_time,
+                        s.end_time,
+                        s.clockin,
+                        s.clockout,
+                        s.pay_per_hour,
+                        s.shift_type,
+                        s.overnight_type,
+
+                        -- Pretty formats
+                        DATE_FORMAT(s.start_time, '%h:%i %p') AS start_time_fmt,
+                        DATE_FORMAT(s.end_time,   '%h:%i %p') AS end_time_fmt,
+                        IFNULL(DATE_FORMAT(s.clockin, '%h:%i %p'), NULL)  AS clockin_fmt,
+                        IFNULL(DATE_FORMAT(s.clockout, '%h:%i %p'), NULL) AS clockout_fmt,
+
+                        -- scheduled hours (decimal)
+                        (
                         CASE
-                            WHEN TIME(s.clockout) <= TIME(s.clockin)
-                            THEN TIMESTAMPDIFF(SECOND, s.clockin, DATE_ADD(s.clockout, INTERVAL 1 DAY)) / 3600
-                            ELSE TIMESTAMPDIFF(SECOND, s.clockin, s.clockout) / 3600
+                            WHEN TIME(s.end_time) <= TIME(s.start_time)
+                            THEN TIMESTAMPDIFF(SECOND, s.start_time, DATE_ADD(s.end_time, INTERVAL 1 DAY)) / 3600
+                            ELSE TIMESTAMPDIFF(SECOND, s.start_time, s.end_time) / 3600
                         END
-                        ELSE 0
-                    END
-                    ) AS hours_worked
-                FROM scheduling s
-                LEFT JOIN users u ON u.email = s.email
-                WHERE " . implode(' AND ', $conds) . "
-                ORDER BY s.start_time ASC
-                ";
+                        ) AS scheduled_hours,
 
-                $stmt = $this->db->prepare($sql);
-                $stmt->bind_param($types, ...$bind);
-                $stmt->execute();
-                $res = $stmt->get_result();
+                        -- hours worked (decimal) — only if both exist
+                        (
+                        CASE
+                            WHEN s.clockin IS NOT NULL AND s.clockout IS NOT NULL THEN
+                            CASE
+                                WHEN TIME(s.clockout) <= TIME(s.clockin)
+                                THEN TIMESTAMPDIFF(SECOND, s.clockin, DATE_ADD(s.clockout, INTERVAL 1 DAY)) / 3600
+                                ELSE TIMESTAMPDIFF(SECOND, s.clockin, s.clockout) / 3600
+                            END
+                            ELSE 0
+                        END
+                        ) AS hours_worked
+                    FROM scheduling s
+                    LEFT JOIN users u ON u.email = s.email
+                    WHERE " . implode(' AND ', $conds) . "
+                    ORDER BY s.start_time ASC
+                    ";
 
-                $rows = [];
-                while ($r = $res->fetch_assoc()) {
-                    // Normalize numeric precision (2 dp)
-                    $status = 'Scheduled';
-                    if ($r['clockin'] && $r['clockout']) {
-                        $status = 'Completed';
-                    } elseif ($r['clockin']) {
-                        $status = 'In Progress';
+                    $stmt = $this->db->prepare($sql);
+                    $stmt->bind_param($types, ...$bind);
+                    $stmt->execute();
+                    $res = $stmt->get_result();
+
+                    $rows = [];
+                    while ($r = $res->fetch_assoc()) {
+                        // Normalize numeric precision (2 dp)
+                        $status = 'scheduled';
+                        if ($r['clockin'] && $r['clockout']) {
+                            $status = 'completed';
+                        } elseif ($r['clockin']) {
+                            $status = 'in-progress';
+                        }
+                        $r['pay_per_hour']   = isset($r['pay_per_hour']) ? number_format((float)$r['pay_per_hour'], 2, '.', '') : '0.00';
+                        $r['scheduled_hours']= number_format((float)$r['scheduled_hours'], 2, '.', '');
+                        $r['hours_worked']   = number_format((float)$r['hours_worked'], 2, '.', '');
+                        $r['status'] = $status;
+                        $rows[] = $r;
                     }
-                    $r['pay_per_hour']   = isset($r['pay_per_hour']) ? number_format((float)$r['pay_per_hour'], 2, '.', '') : '0.00';
-                    $r['scheduled_hours']= number_format((float)$r['scheduled_hours'], 2, '.', '');
-                    $r['hours_worked']   = number_format((float)$r['hours_worked'], 2, '.', '');
-                    $r['status'] = $status;
-                    $rows[] = $r;
+
+                    echo json_encode([
+                        'status' => true,
+                        'data' => $rows
+                    ]);
+                }
+                elseif ($action === 'spreadsheet') {
+                    $page = max(1, (int)($_POST['page'] ?? 1));
+                    $limit = max(1, (int)($_POST['limit'] ?? 50));
+                    $offset = ($page - 1) * $limit;
+                    
+                    $name = trim($_POST['name'] ?? '');
+                    $location = trim($_POST['location'] ?? '');
+                    $status = $_POST['status'] ?? '';
+                    $date = $_POST['date'] ?? '';
+
+                    // Build filter conditions
+                    $conds = ["1=1"];
+                    $bind = [];
+                    $types = "";
+
+                    if ($name !== '') {
+                        $conds[] = "(u.firstname LIKE CONCAT('%', ?, '%') OR u.lastname LIKE CONCAT('%', ?, '%'))";
+                        $bind[] = $name; $bind[] = $name;
+                        $types .= "ss";
+                    }
+                    if ($location !== '') {
+                        $conds[] = "s.location_id = ?";
+                        $bind[] = $location;
+                        $types .= "s";
+                    }
+                    if ($date !== '') {
+                        $conds[] = "DATE(s.schedule_date) = ?";
+                        $bind[] = $date;
+                        $types .= "s";
+                    }
+
+                    // Status filter
+                    if (!empty($status)) {
+                        if ($status === 'completed') {
+                            $conds[] = "(s.clockin IS NOT NULL AND s.clockout IS NOT NULL)";
+                        } elseif ($status === 'in-progress') {
+                            $conds[] = "(s.clockin IS NOT NULL AND s.clockout IS NULL)";
+                        } elseif ($status === 'scheduled') {
+                            $conds[] = "(s.clockin IS NULL)";
+                        }
+                    }
+
+                    // Count total records for pagination
+                    $countSql = "SELECT COUNT(*) as total FROM scheduling s 
+                                LEFT JOIN users u ON u.email = s.email 
+                                WHERE " . implode(' AND ', $conds);
+                    
+                    $countStmt = $this->db->prepare($countSql);
+                    if (!empty($bind)) {
+                        $countStmt->bind_param($types, ...$bind);
+                    }
+                    $countStmt->execute();
+                    $countResult = $countStmt->get_result();
+                    $totalRecords = $countResult->fetch_assoc()['total'];
+
+                    // Main query for schedules
+                    $sql = "
+                    SELECT
+                        s.id,
+                        s.email,
+                        CONCAT(u.firstname, ' ', u.lastname) AS staff_name,
+                        l.address AS location,
+                        s.schedule_date AS date,
+
+                        s.start_time,
+                        s.end_time,
+                        s.clockin,
+                        s.clockout,
+                        s.pay_per_hour,
+                        s.shift_type,
+                        s.overnight_type,
+
+                        -- Pretty formats
+                        DATE_FORMAT(s.start_time, '%h:%i %p') AS start_time_fmt,
+                        DATE_FORMAT(s.end_time,   '%h:%i %p') AS end_time_fmt,
+                        IFNULL(DATE_FORMAT(s.clockin, '%h:%i %p'), NULL)  AS clockin_fmt,
+                        IFNULL(DATE_FORMAT(s.clockout, '%h:%i %p'), NULL) AS clockout_fmt,
+
+                        -- scheduled hours (decimal)
+                        (
+                        CASE
+                            WHEN TIME(s.end_time) <= TIME(s.start_time)
+                            THEN TIMESTAMPDIFF(SECOND, s.start_time, DATE_ADD(s.end_time, INTERVAL 1 DAY)) / 3600
+                            ELSE TIMESTAMPDIFF(SECOND, s.start_time, s.end_time) / 3600
+                        END
+                        ) AS scheduled_hours,
+
+                        -- hours worked (decimal) — only if both exist
+                        (
+                        CASE
+                            WHEN s.clockin IS NOT NULL AND s.clockout IS NOT NULL THEN
+                            CASE
+                                WHEN TIME(s.clockout) <= TIME(s.clockin)
+                                THEN TIMESTAMPDIFF(SECOND, s.clockin, DATE_ADD(s.clockout, INTERVAL 1 DAY)) / 3600
+                                ELSE TIMESTAMPDIFF(SECOND, s.clockin, s.clockout) / 3600
+                            END
+                            ELSE 0
+                        END
+                        ) AS hours_worked
+                    FROM scheduling s
+                    LEFT JOIN users u ON u.email = s.email
+                    LEFT JOIN locations l ON s.location_id = l.id
+                    WHERE " . implode(' AND ', $conds) . "
+                    ORDER BY s.schedule_date DESC, s.start_time ASC
+                    LIMIT ? OFFSET ?
+                    ";
+
+                    // Add limit and offset to bind parameters
+                    $bind[] = $limit;
+                    $bind[] = $offset;
+                    $types .= "ii";
+
+                    $stmt = $this->db->prepare($sql);
+                    $stmt->bind_param($types, ...$bind);
+                    $stmt->execute();
+                    $res = $stmt->get_result();
+
+                    $rows = [];
+                    while ($r = $res->fetch_assoc()) {
+                        // Determine status
+                        $status = 'scheduled';
+                        if ($r['clockin'] && $r['clockout']) {
+                            $status = 'completed';
+                        } elseif ($r['clockin']) {
+                            $status = 'in-progress';
+                        } elseif(!$r['clockin'] && !$r['clockout'] && date('Y-m-d') > $r['date']){
+                            $status = 'missed';
+                        }
+                        
+                        // Normalize numeric precision (2 dp)
+                        $r['pay_per_hour'] = isset($r['pay_per_hour']) ? number_format((float)$r['pay_per_hour'], 2, '.', '') : '0.00';
+                        $r['scheduled_hours'] = number_format((float)$r['scheduled_hours'], 2, '.', '');
+                        $r['hours_worked'] = number_format((float)$r['hours_worked'], 2, '.', '');
+                        $r['status'] = $status;
+                        $rows[] = $r;
+                    }
+
+                    echo json_encode([
+                        'status' => true,
+                        'data' => [
+                            'schedules' => $rows,
+                            'total' => $totalRecords,
+                            'page' => $page,
+                            'limit' => $limit,
+                            'total_pages' => ceil($totalRecords / $limit)
+                        ]
+                    ]);
+                }
+                elseif ($action === 'datatable') {
+                    // DataTables server-side processing parameters
+                    $start = $_POST['start'] ?? 0;
+                    $length = $_POST['length'] ?? 25;
+                    $searchValue = $_POST['search']['value'] ?? '';
+                    $draw = intval($_POST['draw'] ?? 1);
+                    
+                    // Custom filters from our form
+                    $date = $_POST['date'] ?? '';
+                    $name = trim($_POST['name'] ?? '');
+                    $location = $_POST['location'] ?? '';
+                    $status = $_POST['status'] ?? '';
+
+                    // Build base conditions
+                    $conds = ["1=1"];
+                    $bind = [];
+                    $types = "";
+
+                    // Apply custom filters
+                    if ($date !== '') {
+                        $conds[] = "DATE(s.schedule_date) = ?";
+                        $bind[] = $date;
+                        $types .= "s";
+                    }
+                    if ($name !== '') {
+                        $conds[] = "(u.firstname LIKE CONCAT('%', ?, '%') OR u.lastname LIKE CONCAT('%', ?, '%'))";
+                        $bind[] = $name; $bind[] = $name;
+                        $types .= "ss";
+                    }
+                    if ($location !== '') {
+                        $conds[] = "s.location_id = ?";
+                        $bind[] = $location;
+                        $types .= "s";
+                    }
+
+                    // Status filter
+                    if (!empty($status)) {
+                        if ($status === 'completed') {
+                            $conds[] = "(s.clockin IS NOT NULL AND s.clockout IS NOT NULL)";
+                        } elseif ($status === 'in-progress') {
+                            $conds[] = "(s.clockin IS NOT NULL AND s.clockout IS NULL)";
+                        } elseif ($status === 'scheduled') {
+                            $conds[] = "(s.clockin IS NULL)";
+                        }
+                    }
+
+                    // Global search
+                    $searchCond = "";
+                    if (!empty($searchValue)) {
+                        $searchCond = " AND (u.firstname LIKE CONCAT('%', ?, '%') OR u.lastname LIKE CONCAT('%', ?, '%') OR l.address LIKE CONCAT('%', ?, '%') OR s.shift_type LIKE CONCAT('%', ?, '%'))";
+                        $bind[] = $searchValue; $bind[] = $searchValue; $bind[] = $searchValue; $bind[] = $searchValue;
+                        $types .= "ssss";
+                    }
+
+                    // Count total records
+                    $countSql = "SELECT COUNT(*) as total FROM scheduling s 
+                                LEFT JOIN users u ON u.email = s.email 
+                                LEFT JOIN locations l ON s.location_id = l.id
+                                WHERE " . implode(' AND ', $conds);
+                    
+                    $countStmt = $this->db->prepare($countSql);
+                    if (!empty($bind)) {
+                        $countStmt->bind_param($types, ...$bind);
+                    }
+                    $countStmt->execute();
+                    $countResult = $countStmt->get_result();
+                    $totalRecords = $countResult->fetch_assoc()['total'];
+
+                    // Count filtered records (with search)
+                    $filteredCountSql = "SELECT COUNT(*) as total FROM scheduling s 
+                                    LEFT JOIN users u ON u.email = s.email 
+                                    LEFT JOIN locations l ON s.location_id = l.id
+                                    WHERE " . implode(' AND ', $conds) . $searchCond;
+                    
+                    $filteredStmt = $this->db->prepare($filteredCountSql);
+                    if (!empty($bind)) {
+                        $filteredStmt->bind_param($types, ...$bind);
+                    }
+                    $filteredStmt->execute();
+                    $filteredResult = $filteredStmt->get_result();
+                    $filteredRecords = $filteredResult->fetch_assoc()['total'];
+
+                    // Main query with pagination and ordering
+                    $orderColumn = $_POST['order'][0]['column'] ?? 0;
+                    $orderDir = $_POST['order'][0]['dir'] ?? 'desc';
+                    
+                    // Map DataTables column index to actual column names
+                    $columnMap = [
+                        0 => 's.schedule_date',  // Date
+                        1 => 'u.firstname',      // Staff Name
+                        2 => 'l.address',        // Location
+                        3 => 's.shift_type',     // Shift Type
+                        4 => 's.start_time',     // Start Time
+                        5 => 's.end_time',       // End Time
+                        6 => 'scheduled_hours',  // Scheduled Hours
+                        7 => 'hours_worked',     // Worked Hours
+                        8 => 's.pay_per_hour',   // Pay Rate
+                        9 => 'total_pay',        // Total Pay (calculated)
+                        10 => 's.clockin',       // Clock In
+                        11 => 's.clockout',      // Clock Out
+                        12 => 'status'           // Status
+                    ];
+                    
+                    $orderBy = isset($columnMap[$orderColumn]) ? $columnMap[$orderColumn] : 's.schedule_date';
+                    $orderBy .= " " . ($orderDir === 'asc' ? 'ASC' : 'DESC');
+
+                    $sql = "
+                    SELECT
+                        s.id,
+                        s.email,
+                        CONCAT(u.firstname, ' ', u.lastname) AS staff_name,
+                        l.address AS location,
+                        s.schedule_date AS date,
+
+                        s.start_time,
+                        s.end_time,
+                        s.clockin,
+                        s.clockout,
+                        s.pay_per_hour,
+                        s.shift_type,
+                        s.overnight_type,
+
+                        -- Pretty formats
+                        DATE_FORMAT(s.start_time, '%h:%i %p') AS start_time_fmt,
+                        DATE_FORMAT(s.end_time,   '%h:%i %p') AS end_time_fmt,
+                        IFNULL(DATE_FORMAT(s.clockin, '%h:%i %p'), NULL)  AS clockin_fmt,
+                        IFNULL(DATE_FORMAT(s.clockout, '%h:%i %p'), NULL) AS clockout_fmt,
+
+                        -- scheduled hours (decimal)
+                        (
+                        CASE
+                            WHEN TIME(s.end_time) <= TIME(s.start_time)
+                            THEN TIMESTAMPDIFF(SECOND, s.start_time, DATE_ADD(s.end_time, INTERVAL 1 DAY)) / 3600
+                            ELSE TIMESTAMPDIFF(SECOND, s.start_time, s.end_time) / 3600
+                        END
+                        ) AS scheduled_hours,
+
+                        -- hours worked (decimal) — only if both exist
+                        (
+                        CASE
+                            WHEN s.clockin IS NOT NULL AND s.clockout IS NOT NULL THEN
+                            CASE
+                                WHEN TIME(s.clockout) <= TIME(s.clockin)
+                                THEN TIMESTAMPDIFF(SECOND, s.clockin, DATE_ADD(s.clockout, INTERVAL 1 DAY)) / 3600
+                                ELSE TIMESTAMPDIFF(SECOND, s.clockin, s.clockout) / 3600
+                            END
+                            ELSE 0
+                        END
+                        ) AS hours_worked,
+
+                        -- total pay calculation
+                        (
+                        CASE
+                            WHEN s.clockin IS NOT NULL AND s.clockout IS NOT NULL THEN
+                            (
+                                CASE
+                                    WHEN TIME(s.clockout) <= TIME(s.clockin)
+                                    THEN TIMESTAMPDIFF(SECOND, s.clockin, DATE_ADD(s.clockout, INTERVAL 1 DAY)) / 3600
+                                    ELSE TIMESTAMPDIFF(SECOND, s.clockin, s.clockout) / 3600
+                                END
+                            ) * s.pay_per_hour
+                            ELSE 0
+                        END
+                        ) AS total_pay
+
+                    FROM scheduling s
+                    LEFT JOIN users u ON u.email = s.email
+                    LEFT JOIN locations l ON s.location_id = l.id
+                    WHERE " . implode(' AND ', $conds) . $searchCond . "
+                    ORDER BY " . $orderBy . "
+                    LIMIT ? OFFSET ?
+                    ";
+
+                    // Add pagination parameters
+                    $bind[] = $length;
+                    $bind[] = $start;
+                    $types .= "ii";
+
+                    $stmt = $this->db->prepare($sql);
+                    $stmt->bind_param($types, ...$bind);
+                    $stmt->execute();
+                    $res = $stmt->get_result();
+
+                    $rows = [];
+                    while ($r = $res->fetch_assoc()) {
+                        // Determine status
+                        $status = 'scheduled';
+                        if ($r['clockin'] && $r['clockout']) {
+                            $status = 'completed';
+                        } elseif ($r['clockin']) {
+                            $status = 'in-progress';
+                        } elseif(!$r['clockin'] && !$r['clockout'] && date('Y-m-d') > $r['date']){
+                            $status = 'missed';
+                        }
+                        
+                        // Normalize numeric precision (2 dp)
+                        $r['pay_per_hour'] = isset($r['pay_per_hour']) ? number_format((float)$r['pay_per_hour'], 2, '.', '') : '0.00';
+                        $r['scheduled_hours'] = number_format((float)$r['scheduled_hours'], 2, '.', '');
+                        $r['hours_worked'] = number_format((float)$r['hours_worked'], 2, '.', '');
+                        $r['total_pay'] = number_format((float)$r['total_pay'], 2, '.', '');
+                        $r['status'] = $status;
+                        $rows[] = $r;
+                    }
+
+                    // Return DataTables formatted response
+                    echo json_encode([
+                        'draw' => $draw,
+                        'recordsTotal' => $totalRecords,
+                        'recordsFiltered' => $filteredRecords,
+                        'data' => $rows
+                    ]);
+                }
+                else {
+                    echo json_encode([
+                        'status' => false,
+                        'message' => 'Invalid action specified'
+                    ]);
                 }
 
-               echo json_encode([
+            } catch (Exception $e) {
+                echo json_encode([
                     'status' => false,
-                    'data' => $rows
+                    'message' => 'Error: ' . $e->getMessage()
                 ]);
-
             }
-        } catch (Exception $e){
-            echo json_encode([
-                'status' => false,
-                'message' => 'Error: ' . $e->getMessage()
-            ]);
         }
-    }
 
     public function updateProfile(){
         try {
@@ -2005,7 +2466,7 @@
                
             }
 
-            error_log("I got here");
+            //error_log("I got here");
 
             $date = date("Y-m-d H:i:s");
 
@@ -2027,11 +2488,148 @@
             ]); 
         }
     }
-        
-        
-        
 
+    public function getRolesPermissions() {
+        try {
+            // Step 1: Fetch all roles
+            $roles = [];
+            $roleQuery = $this->db->query("SELECT id, name, tag FROM roles");
+            while ($role = $roleQuery->fetch_assoc()) {
+                $roles[$role['id']] = [
+                    'id' => $role['id'],
+                    'name' => $role['name'],
+                    'tag' => $role['tag'],
+                    'permissions' => [] // will fill later
+                ];
+            }
 
+            if (empty($roles)) {
+                echo json_encode([
+                    'status' => false,
+                    'data' => []
+                ]);
+                return;
+            }
+
+            // Step 2: Fetch all permissions
+            $permissions = [];
+            $permQuery = $this->db->query("SELECT id, name, description FROM permissions");
+            while ($perm = $permQuery->fetch_assoc()) {
+                $permissions[$perm['id']] = $perm;
+            }
+
+            // Step 3: Fetch role-permission relations (including is_active)
+            $rpQuery = $this->db->query("SELECT role_id, permission_id, is_active FROM role_permissions");
+            $activeMap = [];
+            while ($rp = $rpQuery->fetch_assoc()) {
+                $activeMap[$rp['role_id']][$rp['permission_id']] = (bool)$rp['is_active'];
+            }
+
+            // Step 4: Combine roles and permissions with active status
+            foreach ($roles as &$role) {
+                foreach ($permissions as $perm) {
+                    $isActive = isset($activeMap[$role['id']][$perm['id']])
+                        ? $activeMap[$role['id']][$perm['id']]
+                        : false;
+
+                    $role['permissions'][] = [
+                        'id' => $perm['id'],
+                        'name' => $perm['name'],
+                        'description' => $perm['description'],
+                        'active' => $isActive
+                    ];
+                }
+            }
+
+            echo json_encode([
+                'status' => true,
+                'data' => array_values($roles)
+            ]);
+
+        } catch (Exception $e) {
+            echo json_encode([
+                'status' => false,
+                'message' => 'Error fetching data: ' . $e->getMessage()
+            ]);
+        }
     }
+
+
+    public function updatePermissions() {
+
+        $roleId = isset($_POST['role_id']) ? (int)$_POST['role_id'] : 0;
+        $permissions = isset($_POST['permission_id']) ? (int)$_POST['permission_id'] : 0;
+        $status = isset($_POST['is_active']) ? $_POST['is_active'] : 1;
+
+        //error_log("Controller Update Permissions: Role ID: $roleId, Permissions: " . $permissions . ", Status: $status");
+
+        $response = $this->allmodels->updatePermissionRole($roleId, $permissions, $status);
+
+        echo json_encode($response);
+    }
+
+    public function getScheduleDetails() {
+        $scheduleId = isset($_POST['schedule_id']) ? (int)$_POST['schedule_id'] : 0;
+
+        $response = $this->allmodels->getScheduleById($scheduleId);
+
+        echo json_encode($response);
+        
+    }
+
+    public function processDocuments(){
+
+        $id = $_POST['id'] ?? 0;
+        $name = trim($_POST['name']);
+        $tag = trim($_POST['tag'] ?? '');
+        $sort_order = $_POST['sort_order'] ?? 0;
+        $is_required = isset($_POST['is_required']) ? 1 : 0;
+        $response = $this->allmodels->saveDocument($id, $name, $tag, $sort_order, $is_required);
+
+        echo json_encode($response);
+    }
+
+    public function getDocumentList(){
+
+        $response = $this->allmodels->getDocuments();
+
+        echo json_encode($response);
+    }
+
+    public function getDocumentDetails(){
+
+        $id = $_GET['id'] ?? 0;
+        $response = $this->allmodels->getSingleDocument($id);
+
+        echo json_encode($response);
+    }
+
+    public function deleteTypeDocument(){
+
+        $id = $_POST['id'] ?? 0;
+        $response = $this->allmodels->deleteDocumentType($id);
+
+        echo json_encode($response);
+    }
+
+    public function AddNewRole(){
+        $name = $this->allmodels->sanitizeInput($_POST['role_name'] ?? '');
+        $description = $this->allmodels->sanitizeInput($_POST['description'] ?? '');
+        $tag = $this->allmodels->sanitizeInput($_POST['tag'] ?? '');
+
+        $response = $this->allmodels->addRole($name, $description, $tag);
+
+        echo json_encode($response);
+    }
+
+    public function deleteARole(){
+        $roleId = isset($_POST['role_id']) ? (int)$_POST['role_id'] : 0;
+
+        $response = $this->allmodels->deleteRole($roleId);
+
+        echo json_encode($response);
+    }
+
+}
 
 ?>

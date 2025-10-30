@@ -17,7 +17,7 @@ class allmodels{
 		// Get the host (domain name) and the requested URI
         $host = $_SERVER['HTTP_HOST'];
         // Get the HTTP protocol (http or https)
-        $protocol = $isHttps ? 'https://' . $host : 'http://' . $host .'/betterchoicehomeadmin';
+        $protocol = $isHttps ? 'https://' . $host : 'http://' . $host;
 
         //$uri = $_SERVER['REQUEST_URI'];
 
@@ -146,7 +146,7 @@ class allmodels{
 
     public function fetchRecentUsers() {
         $zero = 0;
-        $stmt = $this->db->prepare("SELECT firstname, lastname, reg_date FROM users WHERE NOT isAdmin = ? ORDER BY id DESC LIMIT 5");
+        $stmt = $this->db->prepare("SELECT firstname, lastname, reg_date, email FROM users WHERE NOT isAdmin = ? ORDER BY id DESC LIMIT 5");
         $stmt->bind_param("i", $zero);
         $stmt->execute();
 
@@ -346,7 +346,7 @@ class allmodels{
             $query = "SELECT * FROM documents WHERE user_id = $userId ";
 
             if (!empty($searchValue)) {
-                $searchQuery = " WHERE doc-tag LIKE ?";
+                $searchQuery = " AND doc-tag LIKE ?";
                 $params[] = "%$searchValue%";
                 $paramTypes .= "s";
             }
@@ -693,15 +693,20 @@ class allmodels{
         return $row['count'] ?? 0; // Return 0 if no count is found
     }
 
-     public function allCounts($count_type, $username = null) {
+    public function allCounts($count_type, $username = null) {
         $totalRows = 0;
         $date = date("Y-m-d");
         $startOfWeek = date('Y-m-d', strtotime('monday this week'));
         $endOfWeek = date('Y-m-d', strtotime('sunday this week'));
-    
+        //$fetch_roles = $this->fetchAllRoles()['roles'];
+        
+        // Extract all 'tag' values from the roles array
+        //$role_tags = array_column($fetch_roles, 'tag');
+        //error_log("Fetch roles tags: " . print_r($role_tags, true));
+        
         // Determine query based on count type
         if ($count_type === "total_users") {
-            $query = "SELECT COUNT(*) FROM users WHERE role IN ('manager', 'staff', 'hr', 'scheduler', 'accountant', 'directorofservice')";
+            $query = "SELECT COUNT(*) FROM users";
             $stmt = $this->db->prepare($query);
         } elseif ($count_type === "total_schedule") {
             $query = "SELECT COUNT(*) FROM scheduling";
@@ -721,16 +726,44 @@ class allmodels{
             $query = "SELECT SUM(TIME_TO_SEC(TIMEDIFF(clockout, clockin))) AS total_seconds FROM scheduling WHERE schedule_date BETWEEN ? AND ? AND clockin IS NOT NULL AND clockin != '' AND clockout IS NOT NULL AND clockout != ''";
             $stmt = $this->db->prepare($query);
             $stmt->bind_param("ss", $startOfWeek, $endOfWeek);
-        }  else {
+        } elseif ($count_type === "schedule_completion_rate_weekly") {
+            // Calculate completion rate: (completed schedules / total schedules) * 100
+            $query = "SELECT 
+                        ROUND(
+                            (SUM(CASE WHEN clockin IS NOT NULL AND clockin != '' AND clockout IS NOT NULL AND clockout != '' THEN 1 ELSE 0 END) / 
+                            NULLIF(COUNT(*), 0)
+                            ) * 100, 2
+                        ) as completion_rate 
+                    FROM scheduling 
+                    WHERE schedule_date BETWEEN ? AND ?";
+            $stmt = $this->db->prepare($query);
+            $stmt->bind_param("ss", $startOfWeek, $endOfWeek);
+        } elseif ($count_type === "user_registration_growth") {
+            // Calculate percentage difference between this month and last month using reg_date
+            $currentMonthStart = date('Y-m-01');
+            $currentMonthEnd = date('Y-m-t');
+            $lastMonthStart = date('Y-m-01', strtotime('-1 month'));
+            $lastMonthEnd = date('Y-m-t', strtotime('-1 month'));
+            
+            $query = "SELECT 
+                        ROUND(
+                            ((SELECT COUNT(*) FROM users WHERE reg_date BETWEEN ? AND ?) - 
+                            (SELECT COUNT(*) FROM users WHERE reg_date BETWEEN ? AND ?)
+                            ) / NULLIF((SELECT COUNT(*) FROM users WHERE reg_date BETWEEN ? AND ?), 0) * 100, 
+                        2) as growth_percentage";
+            
+            $stmt = $this->db->prepare($query);
+            $stmt->bind_param("ssssss", $currentMonthStart, $currentMonthEnd, $lastMonthStart, $lastMonthEnd, $lastMonthStart, $lastMonthEnd);
+        } else {
             return $totalRows; // Return 0 if no valid count_type is provided
         }
-    
+
         // Execute query and fetch the result
         $stmt->execute();
         $stmt->bind_result($totalRows);
         $stmt->fetch();
         $stmt->close();
-    
+
         return $totalRows;
     }
 
@@ -832,18 +865,34 @@ class allmodels{
     }
     public function deleteSchedule($id,$email) {
         try {
-            $stmt = $this->db->prepare("DELETE FROM scheduling WHERE id = ?");
-            if (!$stmt) {
-                throw new Exception("Failed to prepare SQL: " . $this->db->error);
-            }
-            $stmt->bind_param("i", $id);
-            if ($stmt->execute()) {
 
-                $this->logActivity($_SESSION['better_email'], $_SESSION['userid'], 'delete-schedule', 'Deleted a schedule for ' . $email . '',  date('Y-m-d H:i:s'));
-
-                return ['status' => true, 'message' => 'Schedule deleted successfully'];
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
             }
-            return ['status' => false, 'message' => 'Failed to delete schedule: ' . $stmt->error];
+            $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
+            date_default_timezone_set($timezone);
+            $userInfo = $this->getUserInfo($_SESSION['better_email']);
+            // Define allowed roles for admin access
+            $user_role = $userInfo['role'];
+            if($userInfo['isAdmin'] > 0 || $this->roleHasPermission($user_role, 'delete.schedule')){
+              
+                $stmt = $this->db->prepare("DELETE FROM scheduling WHERE id = ?");
+                if (!$stmt) {
+                    throw new Exception("Failed to prepare SQL: " . $this->db->error);
+                }
+                $stmt->bind_param("i", $id);
+                if ($stmt->execute()) {
+
+                    $this->logActivity($_SESSION['better_email'], $_SESSION['userid'], 'delete-schedule', 'Deleted a schedule for ' . $email . '',  date('Y-m-d H:i:s'));
+
+                    return ['status' => true, 'message' => 'Schedule deleted successfully'];
+                }
+                return ['status' => false, 'message' => 'Failed to delete schedule: ' . $stmt->error];
+
+            } else {
+                throw new Exception("Unauthorized access. Insufficient privileges.");
+            }
+            
         } catch (Exception $e) {
             return ['status' => false, 'message' => 'An error occurred: ' . $e->getMessage()];
         }
@@ -851,50 +900,65 @@ class allmodels{
 
      public function deleteUser($userId,$email) {
         try {
+
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
+            date_default_timezone_set($timezone);
             // Start transaction
             $this->db->begin_transaction();
 
-            // 1. Delete from documents table first (due to likely foreign key constraints)
-            $stmt1 = $this->db->prepare("DELETE FROM documents WHERE user_id = ?");
-            if (!$stmt1) throw new Exception("Documents delete preparation failed: " . $this->db->error);
-            $stmt1->bind_param("i", $userId);
-            if (!$stmt1->execute()) throw new Exception("Documents delete failed: " . $stmt1->error);
+            $userInfo = $this->getUserInfo($_SESSION['better_email']);
+            // Define allowed roles for admin access
+            $user_role = $userInfo['role'];
+            if($userInfo['isAdmin'] > 0 || $this->roleHasPermission($user_role, 'delete.staff')){
 
-            // 2. Delete from user_details
-            $stmt2 = $this->db->prepare("DELETE FROM user_details WHERE user_id = ?");
-            if (!$stmt2) throw new Exception("User details delete preparation failed: " . $this->db->error);
-            $stmt2->bind_param("i", $userId);
-            if (!$stmt2->execute()) throw new Exception("User details delete failed: " . $stmt2->error);
+                // 1. Delete from documents table first (due to likely foreign key constraints)
+                $stmt1 = $this->db->prepare("DELETE FROM documents WHERE user_id = ?");
+                if (!$stmt1) throw new Exception("Documents delete preparation failed: " . $this->db->error);
+                $stmt1->bind_param("i", $userId);
+                if (!$stmt1->execute()) throw new Exception("Documents delete failed: " . $stmt1->error);
 
-            // 2. Delete from certificates
-            $stmt3 = $this->db->prepare("DELETE FROM certificates WHERE user_id = ?");
-            if (!$stmt3) throw new Exception("Certificates delete preparation failed: " . $this->db->error);
-            $stmt3->bind_param("i", $userId);
-            if (!$stmt3->execute()) throw new Exception("Certificates delete failed: " . $stmt3->error);
+                // 2. Delete from user_details
+                $stmt2 = $this->db->prepare("DELETE FROM user_details WHERE user_id = ?");
+                if (!$stmt2) throw new Exception("User details delete preparation failed: " . $this->db->error);
+                $stmt2->bind_param("i", $userId);
+                if (!$stmt2->execute()) throw new Exception("User details delete failed: " . $stmt2->error);
 
-            // 3. Finally, delete from scheduling table
-            $stmt4 = $this->db->prepare("DELETE FROM scheduling WHERE user_id = ?");
-            if (!$stmt4) throw new Exception("Schedule deletes preparation failed: " . $this->db->error);
-            $stmt4->bind_param("i", $userId);
-            if (!$stmt4->execute()) throw new Exception("Schedule deletes failed: " . $stmt4->error);
+                // 2. Delete from certificates
+                $stmt3 = $this->db->prepare("DELETE FROM certificates WHERE user_id = ?");
+                if (!$stmt3) throw new Exception("Certificates delete preparation failed: " . $this->db->error);
+                $stmt3->bind_param("i", $userId);
+                if (!$stmt3->execute()) throw new Exception("Certificates delete failed: " . $stmt3->error);
 
-            // 3. Finally, delete from activity table
-            $stmt5 = $this->db->prepare("DELETE FROM activities WHERE user_id = ?");
-            if (!$stmt5) throw new Exception("Activities deletes preparation failed: " . $this->db->error);
-            $stmt5->bind_param("i", $userId);
-            if (!$stmt5->execute()) throw new Exception("Activities deletes failed: " . $stmt5->error);
+                // 3. Finally, delete from scheduling table
+                $stmt4 = $this->db->prepare("DELETE FROM scheduling WHERE user_id = ?");
+                if (!$stmt4) throw new Exception("Schedule deletes preparation failed: " . $this->db->error);
+                $stmt4->bind_param("i", $userId);
+                if (!$stmt4->execute()) throw new Exception("Schedule deletes failed: " . $stmt4->error);
 
-            // 3. Finally, delete from users table
-            $stmt6 = $this->db->prepare("DELETE FROM users WHERE id = ?");
-            if (!$stmt6) throw new Exception("User delete preparation failed: " . $this->db->error);
-            $stmt6->bind_param("i", $userId);
-            if (!$stmt6->execute()) throw new Exception("User delete failed: " . $stmt6->error);
-            
-            $this->logActivity($_SESSION['better_email'], $_SESSION['userid'], 'delete-user', 'Deleted user ' . $email. ' account',  date('Y-m-d H:i:s'));
+                // 3. Finally, delete from activity table
+                $stmt5 = $this->db->prepare("DELETE FROM activities WHERE user_id = ?");
+                if (!$stmt5) throw new Exception("Activities deletes preparation failed: " . $this->db->error);
+                $stmt5->bind_param("i", $userId);
+                if (!$stmt5->execute()) throw new Exception("Activities deletes failed: " . $stmt5->error);
 
-            // Commit if all queries succeed
-            $this->db->commit();
-            return ['status' => true, 'message' => 'User and all related data deleted successfully'];
+                // 3. Finally, delete from users table
+                $stmt6 = $this->db->prepare("DELETE FROM users WHERE id = ?");
+                if (!$stmt6) throw new Exception("User delete preparation failed: " . $this->db->error);
+                $stmt6->bind_param("i", $userId);
+                if (!$stmt6->execute()) throw new Exception("User delete failed: " . $stmt6->error);
+                
+                $this->logActivity($_SESSION['better_email'], $_SESSION['userid'], 'delete-user', 'Deleted user ' . $email. ' account',  date('Y-m-d H:i:s'));
+
+                // Commit if all queries succeed
+                $this->db->commit();
+                return ['status' => true, 'message' => 'User and all related data deleted successfully'];
+
+            } else {
+                throw new Exception("Unauthorized access. Insufficient privileges.");
+            }
 
         } catch (Exception $e) {
             // Rollback on failure
@@ -969,6 +1033,10 @@ class allmodels{
 
                 $now = $timestamp;
 
+                $fetch_document_types = $this->getDocuments();
+
+
+
                 $expectedDocs = [
                     'education_doc'           => 'Education Document (DSW/SSW/BSW)',
                     'driver_licence_frontpage' => 'Driver Licence (Front Page)',
@@ -1010,11 +1078,11 @@ class allmodels{
                     throw new Exception("Failed to prepare document insert: " . $this->db->error);
                 }
 
-                foreach ($expectedDocs as $tag => $title) {
-                    $optional = ($tag === 'covid_vaccine_3') ? 1 : 0;
-                    $docStmt->bind_param("issssi", $userId, $title, $tag, $now, $now, $optional);
+                foreach ($fetch_document_types['documents'] as $docs) {
+                    $optional = $docs['is_required'] === true ? 1 : 0;
+                    $docStmt->bind_param("issssi", $userId, $docs['name'], $docs['tag'], $now, $now, $optional);
                     if (!$docStmt->execute()) {
-                        throw new Exception("Failed to insert document record for $tag: " . $docStmt->error);
+                        throw new Exception("Failed to insert document record for {$docs['tag']}: " . $docStmt->error);
                     }
                 }
 
@@ -1057,6 +1125,393 @@ class allmodels{
         $stmt->execute();
         $stmt->close();
     }
+
+    public function updatePermissionRole($roleId, $permission_id, $status)
+    {
+
+        try {
+            $this->db->begin_transaction();
+
+            // First, check if the record exists
+            $checkStmt = $this->db->prepare("SELECT id, is_active FROM role_permissions WHERE role_id = ? AND permission_id = ?");
+            $checkStmt->bind_param("ii", $roleId, $permission_id);
+            $checkStmt->execute();
+            $result = $checkStmt->get_result();
+            $existing = $result->fetch_assoc();
+            $checkStmt->close();
+
+            $isActive = $status === 'true' ? 1 : 0;
+
+            if ($existing) {
+                // Update existing record
+                error_log("Updating existing record");
+                $stmt = $this->db->prepare("UPDATE role_permissions SET is_active = ? WHERE role_id = ? AND permission_id = ?");
+                $stmt->bind_param("iii", $isActive, $roleId, $permission_id);
+            } else {
+                // Insert new record
+                error_log("Inserting new record");
+                $stmt = $this->db->prepare("INSERT INTO role_permissions (role_id, permission_id, is_active) VALUES (?, ?, ?)");
+                $stmt->bind_param("iii", $roleId, $permission_id, $isActive);
+            }
+
+            if (!$stmt) {
+                throw new Exception("Failed to prepare statement: " . $this->db->error);
+            }
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to execute: " . $stmt->error);
+            }
+
+            $affectedRows = $stmt->affected_rows;
+            $stmt->close();
+            $this->db->commit();
+
+
+            return [
+                'status' => true,
+                'message' => $isActive ? 'Role permission activated successfully' : 'Role permission deactivated successfully'
+            ];
+
+        } catch (Exception $e) {
+            $this->db->rollback();
+            error_log("Error in updatePermissionRole: " . $e->getMessage());
+            return [
+                'status' => false,
+                'message' => 'An error occurred: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    public function getScheduleById($scheduleId)
+    {
+        $stmt = $this->db->prepare("SELECT * FROM scheduling WHERE id = ?");
+        if (!$stmt) {
+            throw new Exception("Failed to prepare statement: " . $this->db->error);
+        }
+
+        $stmt->bind_param("i", $scheduleId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $schedule = $result->fetch_assoc();
+        $stmt->close();
+
+        return [
+            'status' => true,
+            'data' => $schedule
+        ];
+
+        return $schedule ?: null;
+    }
+
+    public function getDocuments() {
+        try {
+            $sql = "SELECT * FROM document_types order BY sort_order ASC";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $documents = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            $alldoc = [];
+            foreach ($documents as &$doc) {
+                $alldoc[] = [
+                    'id' => $doc['id'],
+                    'name' => $doc['name'],
+                    'tag' => $doc['tag'],
+                    'sort_order' => $doc['sort_order'],
+                    'is_required' => (bool)$doc['is_required'],
+                ];
+            }
+            
+            return [
+                'status' => true,
+                'documents' => $alldoc
+            ];
+        } catch (Exception $e) {
+            return [
+                'status' => false,
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+    
+    // Get single document
+    public function getSingleDocument($id) {
+        try {
+           
+            $sql = "SELECT * FROM document_types WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            $document = $stmt->get_result()->fetch_assoc();
+            
+            return [
+                'status' => true,
+                'document' => $document
+            ];
+        } catch (Exception $e) {
+            return [
+                'status' => false,
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+
+    public function saveDocument($id, $name, $tag, $sort_order, $is_required) {
+        try {
+            
+            if ($id > 0) {
+                // Update existing document
+                $sql = "UPDATE document_types SET name = ?, tag = ?, sort_order = ?, is_required = ? 
+                        WHERE id = ?";
+                $stmt = $this->db->prepare($sql);
+                $stmt->bind_param('ssiii', $name, $tag, $sort_order, $is_required, $id);
+
+            } else {
+                // Insert new document
+                $sql = "INSERT INTO document_types (name, tag, sort_order, is_required) 
+                        VALUES (?, ?, ?, ?)";
+                $stmt = $this->db->prepare($sql);
+                $stmt->bind_param('ssii', $name, $tag, $sort_order, $is_required);
+            }
+            
+            $stmt->execute();
+            
+            return [
+                'status' => true,
+                'message' => 'Document saved successfully'
+            ];
+            
+        } catch (Exception $e) {
+            return [
+                'status' => false,
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+
+    public function deleteDocumentType($id) {
+        try {
+            $sql = "DELETE FROM document_types WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            
+            return [
+                'status' => true,
+                'message' => 'Document type deleted successfully'
+            ];
+            
+        } catch (Exception $e) {
+            return [
+                'status' => false,
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+
+    public function fetchAllRoles() {
+        try {
+            $sql = "SELECT * FROM roles ORDER BY id ASC";
+            $stmt = $this->db->prepare($sql);
+            $stmt->execute();
+            $roles = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+            
+            return [
+                'status' => true,
+                'roles' => $roles
+            ];
+        } catch (Exception $e) {
+            return [
+                'status' => false,
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+
+    public function addRole($name, $description = '', $tag = null)
+    {
+        try {
+            $this->db->begin_transaction();
+
+            // Validate required fields
+            if (empty(trim($name))) {
+                throw new Exception("Role name is required");
+            }
+
+            // Generate tag from name if not provided
+            if (empty($tag)) {
+                $tag = $this->generateRoleTag($name);
+            }
+
+            // Check if role name or tag already exists
+            if ($this->roleExists($name, $tag)) {
+                throw new Exception("Role name or tag already exists");
+            }
+
+            // Prepare and execute insert statement
+            $stmt = $this->db->prepare("
+                INSERT INTO roles (name, tag, description) 
+                VALUES (?, ?, ?)
+            ");
+
+            if (!$stmt) {
+                throw new Exception("Failed to prepare statement: " . $this->db->error);
+            }
+
+            $stmt->bind_param("sss", $name, $tag, $description);
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to execute: " . $stmt->error);
+            }
+
+            $roleId = $this->db->insert_id;
+            $stmt->close();
+            $this->db->commit();
+
+            return [
+                'status' => true,
+                'message' => 'Role created successfully',
+            ];
+
+        } catch (Exception $e) {
+            $this->db->rollback();
+            error_log("Error in addRole: " . $e->getMessage());
+            return [
+                'status' => false,
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+
+    public function deleteRole($roleId)
+    {
+        try {
+            $this->db->begin_transaction();
+
+            // Validate role ID
+            if (empty($roleId) || !is_numeric($roleId)) {
+                throw new Exception("Invalid role ID");
+            }
+
+            // First, delete all permissions associated with this role
+            $this->deleteRolePermissions($roleId);
+
+            // Then delete the role itself
+            $stmt = $this->db->prepare("DELETE FROM roles WHERE id = ?");
+            
+            if (!$stmt) {
+                throw new Exception("Failed to prepare delete statement: " . $this->db->error);
+            }
+
+            $stmt->bind_param("i", $roleId);
+
+            if (!$stmt->execute()) {
+                throw new Exception("Failed to delete role: " . $stmt->error);
+            }
+
+            $affectedRows = $stmt->affected_rows;
+            $stmt->close();
+            $this->db->commit();
+
+            if ($affectedRows > 0) {
+                return [
+                    'status' => true,
+                    'message' => 'Role deleted successfully',
+                ];
+            } else {
+                throw new Exception("No role was deleted");
+            }
+
+        } catch (Exception $e) {
+            $this->db->rollback();
+            error_log("Error in deleteRole: " . $e->getMessage());
+            return [
+                'status' => false,
+                'message' => $e->getMessage()
+            ];
+        }
+    }
+
+    private function generateRoleTag($name)
+    {
+        // Convert to lowercase, replace spaces with underscores, and remove non-alphanumeric characters
+        $tag = strtolower($name);
+        $tag = preg_replace('/\s+/', '_', $tag);
+        $tag = preg_replace('/[^a-z0-9_]/', '', $tag);
+        return $tag;
+    }
+
+    private function roleExists($name, $tag)
+    {
+        $stmt = $this->db->prepare("SELECT COUNT(*) AS count FROM roles WHERE name = ? OR tag = ?");
+        if (!$stmt) {
+            throw new Exception("Failed to prepare statement: " . $this->db->error);
+        }
+
+        $stmt->bind_param("ss", $name, $tag);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $stmt->close();
+
+        return $row['count'] > 0;
+    }
+
+    // Delete all permissions for a role
+    private function deleteRolePermissions($roleId)
+    {
+        $stmt = $this->db->prepare("DELETE FROM role_permissions WHERE role_id = ?");
+        
+        if (!$stmt) {
+            throw new Exception("Failed to prepare permissions delete statement: " . $this->db->error);
+        }
+
+        $stmt->bind_param("i", $roleId);
+
+        if (!$stmt->execute()) {
+            throw new Exception("Failed to delete role permissions: " . $stmt->error);
+        }
+
+        $deletedPermissions = $stmt->affected_rows;
+        $stmt->close();
+        
+        return $deletedPermissions;
+    }
+
+    public function roleHasPermission($roleTag, $permissionName) {
+        // Fetch the role ID from the role tag
+        $roleQuery = $this->db->prepare("SELECT id FROM roles WHERE tag = ?");
+        $roleQuery->bind_param("s", $roleTag);
+        $roleQuery->execute();
+        $roleResult = $roleQuery->get_result()->fetch_assoc();
+
+        if (!$roleResult) {
+            return false; // Role not found
+        }
+        $roleId = $roleResult['id'];
+
+        // Fetch permission ID from permission name
+        $permQuery = $this->db->prepare("SELECT id FROM permissions WHERE name = ?");
+        $permQuery->bind_param("s", $permissionName);
+        $permQuery->execute();
+        $permResult = $permQuery->get_result()->fetch_assoc();
+
+        if (!$permResult) {
+            return false; // Permission not found
+        }
+        $permId = $permResult['id'];
+
+        // Check if role_permission exists and is active
+        $checkQuery = $this->db->prepare("
+            SELECT COUNT(*) AS cnt 
+            FROM role_permissions 
+            WHERE role_id = ? AND permission_id = ? AND is_active = 1
+        ");
+        $checkQuery->bind_param("ii", $roleId, $permId);
+        $checkQuery->execute();
+        $result = $checkQuery->get_result()->fetch_assoc();
+
+        return $result['cnt'] > 0;
+    }
+
 
 
 

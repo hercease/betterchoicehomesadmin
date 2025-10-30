@@ -80,6 +80,21 @@ switch ($url) {
             $viewController->showEditProfilePage($rootUrl);
         }
         break;
+    case '/role_permissions':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $viewController->showRolePermissionsPage($rootUrl);
+        }
+        break;
+    case '/document_management':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $viewController->showDocumentManagementPage($rootUrl);
+        }
+        break;
+    case '/forbidden':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $viewController->ForbiddenPage($rootUrl);
+        }
+        break;
     case '/logout':
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $viewController->Logout($rootUrl);
@@ -89,6 +104,21 @@ switch ($url) {
     case '/':
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $viewController->showDashboardPage($rootUrl);
+        }
+        break;
+    case '/get_roles_permissions':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $modelController->getRolesPermissions();
+        }
+        break;
+    case '/fetch_document_details':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $modelController->getDocumentDetails();
+        }
+        break;
+    case '/fetch_all_documents':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $modelController->getDocumentList();
         }
         break;
     case '/handlelogin':
@@ -199,6 +229,36 @@ switch ($url) {
     case '/process_forgot_password':
         if ($_SERVER['REQUEST_METHOD'] === 'POST'){
             $modelController->processForgotPassword();
+        }
+        break;
+    case '/update_role_permission_status':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->updatePermissions();
+        }
+        break;
+    case '/get_schedule_details':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->getScheduleDetails();
+        }
+        break;
+    case '/process_documents':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->processDocuments();
+        }
+        break;
+    case '/delete_document_type':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->deleteTypeDocument();
+        }
+        break;
+    case '/add_new_role':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->AddNewRole();
+        }
+        break;
+    case '/delete_role':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->deleteARole();
         }
         break;
     

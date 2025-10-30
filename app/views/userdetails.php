@@ -201,7 +201,6 @@
                                 </div>
                             </div>
 
-                            <?php if($fetchuserinfo['role'] == 'staff'): ?>
                                 
                                 <div class="col-md-6 col-lg-6 g-4">
                                     <div class="card">
@@ -303,7 +302,6 @@
                                 </div>
                             </div>
                             
-                                <?php endif; ?>
                         </div>
                         
                     </div>
@@ -615,7 +613,9 @@
                     const status = $(this).data('status');
                     const type = $(this).data('type');
 
-                    const msg = status
+                    console.log(status);
+
+                    const msg = status === 0
                         ? 'Are you sure you want to reject this document?'
                         : 'Are you sure you want to approve this document?';
 

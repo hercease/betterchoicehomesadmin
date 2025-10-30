@@ -36,11 +36,14 @@ class ViewController {
             $total_appointment_weekly = $this->allmodels->allCounts('total_appointments_weekly');
             $total_expected_hours_weekly = $this->allmodels->allCounts('total_expected_hours_weekly');
             $total_completed_hours_weekly = $this->allmodels->allCounts('total_completed_hours_weekly');
-
+            $schedule_completion_rate = $this->allmodels->allCounts('schedule_completion_rate_weekly');
+            $user_registration_growth = $this->allmodels->allCounts('user_registration_growth');
+            $fetch_all_roles = $this->allmodels->fetchAllRoles()['roles'];
+            $role_tags = array_column($fetch_all_roles, 'tag');
 
              $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
 
-            if($fetchuserinfo['isAdmin'] > 0 || in_array($fetchuserinfo['role'], $role)){
+            if($fetchuserinfo['isAdmin'] > 0 || in_array($fetchuserinfo['role'], $role_tags)){
 
                 $data = [
 					'total_users' => $total_users,
@@ -53,12 +56,14 @@ class ViewController {
                     'total_appointment_weekly' => $total_appointment_weekly,
                     'total_completed_hours_weekly' => $total_completed_hours_weekly.' '. 'hrs',
                     'total_expected_hours_weekly' => round($total_expected_hours_weekly / 3600, 2) .' '.  'hrs',
+                    'schedule_completion_rate' => $schedule_completion_rate.'%',
+                    'user_registration_growth' => $user_registration_growth.'%',
 				];
 
                 require_once('app/views/dashboard.php');
 
             } else {
-				require_once('app/views/login.php');
+				$this->forbiddenPage();
 			}
 
         } else {
@@ -69,9 +74,11 @@ class ViewController {
 
     // Display the all users page
     public function showAllUsersPage($rootUrl){
+
         if (session_status() === PHP_SESSION_NONE) {
                 session_start();
-            }
+        }
+
         if (isset($_SESSION['better_email'])){
 
             $email = $_SESSION['better_email'];
@@ -80,22 +87,23 @@ class ViewController {
             $fetchuserinfo = $this->allmodels->getUserInfo($email);
             $total_users = $this->allmodels->allCounts('total_users');
             $all_locations = $this->allmodels->fetchlocations();
+            $all_roles = $this->allmodels->fetchAllRoles();
+            $user_role = $fetchuserinfo['role'];
 
-             $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
-
-            if($fetchuserinfo['isAdmin'] > 0 || in_array($fetchuserinfo['role'], $role)){
+            if($fetchuserinfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'view.staff')){
 
 
                 $data = [
 					'total_users' => $total_users,
                     'all_location' => $all_locations,
-                    'user_info' => $fetchuserinfo,				
+                    'user_info' => $fetchuserinfo,
+                    'all_roles' => $all_roles			
                 ];
 
                 require_once('app/views/allusers.php');
 
             } else {
-				echo "Sorry, you are not allowed to view this page";
+				$this->forbiddenPage();
 			}
 
         } else {
@@ -105,6 +113,7 @@ class ViewController {
 
     // Display the all locations page
     public function showAllLocationsPage($rootUrl){
+
          if (session_status() === PHP_SESSION_NONE) {
                 session_start();
             }
@@ -115,10 +124,9 @@ class ViewController {
             date_default_timezone_set($timezone);
             $fetchuserinfo = $this->allmodels->getUserInfo($email);
             $total_locations = $this->allmodels->allCounts('total_location');
+            $user_role = $fetchuserinfo['role'];
 
-             $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
-
-            if($fetchuserinfo['isAdmin'] > 0 || in_array($fetchuserinfo['role'], $role)){
+            if($fetchuserinfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'view.location')){
 
                 $data = [
 					'total_location' => $total_locations,
@@ -128,7 +136,7 @@ class ViewController {
                 require_once('app/views/locations.php');
 
             } else {
-				echo "Sorry, you are not allowed to view this page";
+				$this->forbiddenPage();
 			}
 
         } else {
@@ -139,9 +147,9 @@ class ViewController {
 
     // Display the all locations page
     public function showCreateUserPage($rootUrl){
-         if (session_status() === PHP_SESSION_NONE) {
-                session_start();
-            }
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
         if (isset($_SESSION['better_email'])){
 
             $email = $_SESSION['better_email'];
@@ -149,20 +157,22 @@ class ViewController {
             date_default_timezone_set($timezone);
             $fetchuserinfo = $this->allmodels->getUserInfo($email);
             $all_locations = $this->allmodels->fetchlocations();
-            $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
+            $all_roles = $this->allmodels->fetchAllRoles();
+            $user_role = $fetchuserinfo['role'];
 
-            if($fetchuserinfo['isAdmin'] > 0 || in_array($fetchuserinfo['role'], $role)){
+            if($fetchuserinfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'view.staffcreation')){
 
                 $data = [
 					'all_location' => $all_locations,
-                    'user_info' => $fetchuserinfo
+                    'user_info' => $fetchuserinfo,
+                    'all_roles' => $all_roles
 				];
 
                 require_once('app/views/createuser.php');
 
-            } else {
-				echo "Sorry, you are not allowed to view this page";
-			}
+            } else {                
+                $this->forbiddenPage();
+            }           
 
         } else {
 			require_once('app/views/login.php');
@@ -180,10 +190,9 @@ class ViewController {
             $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
             date_default_timezone_set($timezone);
             $fetchuserinfo = $this->allmodels->getUserInfo($email);
+            $user_role = $fetchuserinfo['role'];
 
-             $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
-
-            if($fetchuserinfo['isAdmin'] > 0 || in_array($fetchuserinfo['role'], $role)){
+            if($fetchuserinfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'view.location')){
 
                 $data = [
                     'user_info' => $fetchuserinfo
@@ -192,7 +201,7 @@ class ViewController {
                 require_once('app/views/createlocation.php');
 
             } else {
-				echo "Sorry, you are not allowed to view this page";
+				$this->forbiddenPage();
 			}
 
         } else {
@@ -203,7 +212,7 @@ class ViewController {
     public function showCreateSchedulePage($rootUrl){
        if (session_status() === PHP_SESSION_NONE) {
                 session_start();
-            }
+        }
         if (isset($_SESSION['better_email'])){
 
             $email = $_SESSION['better_email'];
@@ -211,10 +220,9 @@ class ViewController {
             date_default_timezone_set($timezone);
             $fetchuserinfo = $this->allmodels->getUserInfo($email);
             $all_locations = $this->allmodels->fetchlocations();
+            $user_role = $fetchuserinfo['role'];
 
-             $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
-
-            if($fetchuserinfo['isAdmin'] > 0 || in_array($fetchuserinfo['role'], $role)){
+            if($fetchuserinfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'view.schedule')){
 
                 $data = [
                     'user_info' => $fetchuserinfo,
@@ -224,7 +232,7 @@ class ViewController {
                 require_once('app/views/createschedule.php');
 
             } else {
-				echo "Sorry, you are not allowed to view this page";
+				$this->forbiddenPage();
 			}
 
         } else {
@@ -245,9 +253,12 @@ class ViewController {
             date_default_timezone_set($timezone);
             $fetchadmininfo = $this->allmodels->getUserInfo($email);
             $fetchuserinfo = $this->allmodels->getUserInfo($userId);
+            $fetch_all_roles = $this->allmodels->fetchAllRoles()['roles'];
+            $role_tags = array_column($fetch_all_roles, 'tag');
+
             $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
 
-            if($fetchadmininfo['isAdmin'] > 0 || in_array($fetchadmininfo['role'], $role)){
+            if($fetchuserinfo['isAdmin'] > 0 || in_array($fetchuserinfo['role'], $role_tags)){
 
                 $data = [
                     "user_info" => $fetchuserinfo
@@ -256,7 +267,7 @@ class ViewController {
                 require_once('app/views/userdetails.php');
 
             } else {
-				echo "Sorry, you are not allowed to view this page";
+				$this->forbiddenPage();
 			}
 
         } else {
@@ -276,9 +287,12 @@ class ViewController {
             $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
             date_default_timezone_set($timezone);
             $fetchadmininfo = $this->allmodels->getUserInfo($email);
+            $fetch_all_roles = $this->allmodels->fetchAllRoles()['roles'];
+            $role_tags = array_column($fetch_all_roles, 'tag');
+
             $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
 
-            if($fetchadmininfo['isAdmin'] > 0 || in_array($fetchadmininfo['role'], $role)){
+            if($fetchadmininfo['isAdmin'] > 0 || in_array($fetchadmininfo['role'], $role_tags)){
 
                 $data = [
                     "user_info" => $fetchadmininfo
@@ -287,7 +301,7 @@ class ViewController {
                 require_once('app/views/change_password.php');
 
             } else {
-				echo "Sorry, you are not allowed to view this page";
+				$this->forbiddenPage();
 			}
 
         } else {
@@ -305,9 +319,12 @@ class ViewController {
             $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
             date_default_timezone_set($timezone);
             $fetchadmininfo = $this->allmodels->getUserInfo($email);
+            $fetch_all_roles = $this->allmodels->fetchAllRoles()['roles'];
+            $role_tags = array_column($fetch_all_roles, 'tag');
+
             $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
 
-            if($fetchadmininfo['isAdmin'] > 0 || in_array($fetchadmininfo['role'], $role)){
+            if($fetchadmininfo['isAdmin'] > 0 || in_array($fetchadmininfo['role'], $role_tags)){
 
                 $data = [
                     "user_info" => $fetchadmininfo
@@ -316,7 +333,7 @@ class ViewController {
                 require_once('app/views/profile.php');
 
             } else {
-				echo "Sorry, you are not allowed to view this page";
+				$this->forbiddenPage();
 			}
 
         } else {
@@ -336,9 +353,12 @@ class ViewController {
             $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
             date_default_timezone_set($timezone);
             $fetchadmininfo = $this->allmodels->getUserInfo($email);
+            $fetch_all_roles = $this->allmodels->fetchAllRoles()['roles'];
+            $role_tags = array_column($fetch_all_roles, 'tag');
+
             $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
 
-            if($fetchadmininfo['isAdmin'] > 0 || in_array($fetchadmininfo['role'], $role)){
+            if($fetchadmininfo['isAdmin'] > 0 || in_array($fetchadmininfo['role'], $role_tags)){
 
                 $data = [
                     "user_info" => $fetchadmininfo
@@ -347,7 +367,7 @@ class ViewController {
                 require_once('app/views/edit_profile.php');
 
             } else { 
-				echo "Sorry, you are not allowed to view this page";
+				$this->forbiddenPage();
 			}
 
         } else {
@@ -367,9 +387,9 @@ class ViewController {
             $fetchadmininfo = $this->allmodels->getUserInfo($email);
             $total_schedules = $this->allmodels->allCounts('total_schedule');
             $all_locations = $this->allmodels->fetchlocations();
-            $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
+            $user_role = $fetchadmininfo['role'];
 
-            if($fetchadmininfo['isAdmin'] > 0 || in_array($fetchadmininfo['role'], $role)){
+            if($fetchadmininfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'view.schedule')){
                 
                 $data = [
                     'total_schedules' => $total_schedules,
@@ -389,9 +409,9 @@ class ViewController {
     }
 
     public function showGenerateReportPage($rootUrl){
-     if (session_status() === PHP_SESSION_NONE) {
-                session_start();
-            }
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
         if (isset($_SESSION['better_email'])){
 
             $email = $_SESSION['better_email'];
@@ -399,10 +419,10 @@ class ViewController {
             date_default_timezone_set($timezone);
             $fetchuserinfo = $this->allmodels->getUserInfo($email);
             $all_locations = $this->allmodels->fetchlocations();
+            $fetch_all_roles = $this->allmodels->fetchAllRoles()['roles'];
+            $role_tags = array_column($fetch_all_roles, 'tag');
 
-             $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
-
-            if($fetchuserinfo['isAdmin'] > 0 || in_array($fetchuserinfo['role'], $role)){
+            if($fetchuserinfo['isAdmin'] > 0 || in_array($fetchuserinfo['role'], $role_tags)){
 
                 $data = [
                     'user_info' => $fetchuserinfo,
@@ -418,6 +438,62 @@ class ViewController {
         } else {
 			require_once('app/views/login.php');
 		}
+    }
+
+    public function showRolePermissionsPage($rootUrl) {
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        if (isset($_SESSION['better_email'])) {
+            $email = $_SESSION['better_email'];
+            $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
+            date_default_timezone_set($timezone);
+            $fetchadmininfo = $this->allmodels->getUserInfo($email);
+            $user_role = $fetchadmininfo['role'];
+            if(!($fetchadmininfo['isAdmin'] > 0)){
+                $this->forbiddenPage();
+            }
+            $data = [
+                'user_info' => $fetchadmininfo
+            ];
+            require_once('app/views/role_permissions.php');
+
+        } else {
+            require_once('app/views/login.php');
+        }
+
+    }
+
+    public function showDocumentManagementPage($rootUrl) {
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        if (isset($_SESSION['better_email'])) {
+            $email = $_SESSION['better_email'];
+            $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
+            date_default_timezone_set($timezone);
+            $fetchadmininfo = $this->allmodels->getUserInfo($email);
+            $user_role = $fetchadmininfo['role'];
+            if(!($fetchadmininfo['isAdmin'] > 0)){
+                $this->forbiddenPage();
+            }
+            $data = [
+                'user_info' => $fetchadmininfo
+            ];
+            require_once('app/views/document_management.php');
+
+        } else {
+            require_once('app/views/login.php');
+        }
+
+    }
+
+    public function ForbiddenPage() {
+        http_response_code(403);
+        require_once('app/views/forbidden.php');
+        exit;
     }
 
     /**

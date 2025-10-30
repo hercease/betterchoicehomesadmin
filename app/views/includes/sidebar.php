@@ -78,6 +78,21 @@
         <a class="nav-link <?= isActive('logout', $currentPath) ?>" href="<?php echo $rootUrl ?>/logout">
           <div class="nav-link-icon"><i data-feather="log-out"></i></div> Logout
         </a>
+
+
+      <?php if ($data['user_info']['isAdmin'] > 0) { ?>
+
+        <div class="sidenav-menu-heading">Settings</div>
+
+        <a class="nav-link <?= isActive('role_permissions', $currentPath) ?>" href="<?php echo $rootUrl ?>/role_permissions">
+          <div class="nav-link-icon"><i data-feather="paperclip"></i></div>
+          Role & Permissions
+        </a>
+        <a class="nav-link <?= isActive('document_management', $currentPath) ?>" href="<?php echo $rootUrl ?>/document_management">
+          <div class="nav-link-icon"><i data-feather="file-text"></i></div>
+          Document Uploads Settings
+        </a>
+      <?php } ?>
       </div>
     </div>
 

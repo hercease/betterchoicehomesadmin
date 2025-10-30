@@ -177,13 +177,9 @@
                                                 <label>Role</label>
                                                 <select id="isHr" name="role" class="form-select border-0 shadow">
                                                     <option value="">--------- Select Role --------</option>
-                                                    <option value="staff">Staff</option>
-                                                    <option value="manager">Manager</option>
-                                                    <option value="hr">HR</option>
-                                                    <option value="accountant">Accountant</option>
-                                                    <option value="scheduler">Scheduler</option>
-                                                    <option value="dos">Director of Services</option>
-                                                    <option value="ed">Executive Director</option>
+                                                    <?php foreach($data['all_roles']['roles'] as $role){ ?>
+                                                        <option value="<?php echo $role['tag'] ?>"><?php echo ucwords($role['name']) ?></option>
+                                                    <?php } ?>
                                                 </select>
                                             </div>
                                            
