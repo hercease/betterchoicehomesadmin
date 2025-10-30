@@ -2271,42 +2271,62 @@
     }
 
     public function getRolesPermissions() {
+        // Enable error visibility for development
+        ini_set('display_errors', 0);
+        error_reporting(E_ALL);
+
         try {
             // Step 1: Fetch all roles
             $roles = [];
             $roleQuery = $this->db->query("SELECT id, name, tag FROM roles");
+
+            if (!$roleQuery) {
+                error_log("Role query failed: " . $this->db->error);
+                throw new Exception("Failed to fetch roles");
+            }
+
             while ($role = $roleQuery->fetch_assoc()) {
                 $roles[$role['id']] = [
                     'id' => $role['id'],
                     'name' => $role['name'],
                     'tag' => $role['tag'],
-                    'permissions' => [] // will fill later
+                    'permissions' => []
                 ];
             }
 
             if (empty($roles)) {
-                echo json_encode([
-                    'status' => false,
-                    'data' => []
-                ]);
+                error_log("No roles found in table");
+                echo json_encode(['status' => false, 'data' => []]);
                 return;
             }
 
             // Step 2: Fetch all permissions
             $permissions = [];
             $permQuery = $this->db->query("SELECT id, name, description FROM permissions");
+
+            if (!$permQuery) {
+                error_log("Permission query failed: " . $this->db->error);
+                throw new Exception("Failed to fetch permissions");
+            }
+
             while ($perm = $permQuery->fetch_assoc()) {
                 $permissions[$perm['id']] = $perm;
             }
 
-            // Step 3: Fetch role-permission relations (including is_active)
+            // Step 3: Fetch role-permission links (with is_active)
             $rpQuery = $this->db->query("SELECT role_id, permission_id, is_active FROM role_permissions");
+
+            if (!$rpQuery) {
+                error_log("Role-Permission query failed: " . $this->db->error);
+                throw new Exception("Failed to fetch role-permission links");
+            }
+
             $activeMap = [];
             while ($rp = $rpQuery->fetch_assoc()) {
                 $activeMap[$rp['role_id']][$rp['permission_id']] = (bool)$rp['is_active'];
             }
 
-            // Step 4: Combine roles and permissions with active status
+            // Step 4: Combine roles and permissions
             foreach ($roles as &$role) {
                 foreach ($permissions as $perm) {
                     $isActive = isset($activeMap[$role['id']][$perm['id']])
@@ -2322,18 +2342,25 @@
                 }
             }
 
+            // Step 5: Final JSON output
             echo json_encode([
                 'status' => true,
                 'data' => array_values($roles)
             ]);
 
+            // Log summary
+            error_log("Roles fetched: " . count($roles));
+            error_log("Permissions fetched: " . count($permissions));
+
         } catch (Exception $e) {
+            error_log("Error in getRolesPermissions: " . $e->getMessage());
             echo json_encode([
                 'status' => false,
                 'message' => 'Error fetching data: ' . $e->getMessage()
             ]);
         }
     }
+
 
 
     public function updatePermissions() {
