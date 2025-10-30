@@ -892,7 +892,7 @@ class allmodels{
             } else {
                 throw new Exception("Unauthorized access. Insufficient privileges.");
             }
-            
+
         } catch (Exception $e) {
             return ['status' => false, 'message' => 'An error occurred: ' . $e->getMessage()];
         }
@@ -1326,7 +1326,7 @@ class allmodels{
         }
     }
 
-    public function addRole($name, $description = '', $tag = null)
+    public function addRole($name, $description = '', $tag = null, $welcomeMessage = '', $id = 0, $activation_message = '')
     {
         try {
             $this->db->begin_transaction();
@@ -1336,27 +1336,42 @@ class allmodels{
                 throw new Exception("Role name is required");
             }
 
+            if (empty(trim($description))) {
+                throw new Exception("Role description is required");
+            }
+
             // Generate tag from name if not provided
             if (empty($tag)) {
                 $tag = $this->generateRoleTag($name);
             }
 
+            // Validate welcome message
+            if (empty(trim($welcomeMessage))) {
+                throw new Exception("Welcome message is required");
+            }
+
+            // Validate activation message
+            if (empty(trim($activation_message))) {
+                throw new Exception("Activation message is required");
+            }
+
             // Check if role name or tag already exists
-            if ($this->roleExists($name, $tag)) {
+            if ($id == 0 && $this->roleExists($name, $tag)) {
                 throw new Exception("Role name or tag already exists");
             }
 
             // Prepare and execute insert statement
-            $stmt = $this->db->prepare("
-                INSERT INTO roles (name, tag, description) 
-                VALUES (?, ?, ?)
-            ");
+            if($id > 0) {
+                $stmt = $this->db->prepare("UPDATE roles SET name = ?, tag = ?, description = ?, role_message = ?, activation_message = ? WHERE id = ?");
+                $stmt->bind_param("sssssi", $name, $tag, $description, $welcomeMessage, $activation_message, $id);
+            } else {
+                $stmt = $this->db->prepare("INSERT INTO roles (name, tag, description, role_message, activation_message) VALUES (?, ?, ?, ?, ?)");
+                $stmt->bind_param("sssss", $name, $tag, $description, $welcomeMessage, $activation_message);
+            }
 
             if (!$stmt) {
                 throw new Exception("Failed to prepare statement: " . $this->db->error);
             }
-
-            $stmt->bind_param("sss", $name, $tag, $description);
 
             if (!$stmt->execute()) {
                 throw new Exception("Failed to execute: " . $stmt->error);
@@ -1368,7 +1383,7 @@ class allmodels{
 
             return [
                 'status' => true,
-                'message' => 'Role created successfully',
+                'message' => $id > 0 ? 'Role updated successfully' : 'Role created successfully',
             ];
 
         } catch (Exception $e) {
@@ -1510,6 +1525,21 @@ class allmodels{
         $result = $checkQuery->get_result()->fetch_assoc();
 
         return $result['cnt'] > 0;
+    }
+
+    public function getRoleByIdOrTag($role) {
+        $message = '';
+        $stmt = $this->db->prepare("SELECT * FROM roles WHERE tag = ? OR id = ?");
+        $stmt->bind_param("si", $role, $role);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        if ($result->num_rows > 0) {
+            $message = ['status' => true, 'data' => $result->fetch_assoc()];
+        } else {
+            $message = ['status' => false, 'message' => 'Role not found'];
+        }
+        
+        return $message;
     }
 
 

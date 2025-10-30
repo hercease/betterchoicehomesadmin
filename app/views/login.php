@@ -8,6 +8,7 @@
     <link rel="icon" type="image/x-icon" href="/public/assets/img/favicon/favicon.ico" />
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700&family=Nunito+Sans:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/izitoast/dist/css/iziToast.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <style>
         body {
             font-family: 'Nunito Sans', sans-serif;
@@ -78,6 +79,32 @@
             font-size: 13px;
         }
 
+        /* Password field with eye icon */
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #6c757d;
+            cursor: pointer;
+            padding: 5px;
+            z-index: 10;
+        }
+
+        .password-toggle:hover {
+            color: #495057;
+        }
+
+        .password-field {
+            padding-right: 40px !important;
+        }
+
         /* Customize toast appearance */
         .iziToast.iziToast-color-green {
         border-left: 5px solid #2E7D32;
@@ -130,7 +157,12 @@
       </div>
       <div class="mb-3">
         <label for="password" class="form-label text-dark">Password</label>
-        <input type="password" class="form-control border-0 shadow" id="password" name="password" placeholder="Enter your password" required>
+        <div class="password-wrapper">
+          <input type="password" class="form-control border-0 shadow password-field" id="password" name="password" placeholder="Enter your password" required>
+          <button type="button" class="password-toggle" id="togglePassword">
+            <i class="fa fa-eye"></i>
+          </button>
+        </div>
       </div>
       <div class="d-grid mb-2">
         <button type="submit" id="submit" class="btn btn-dark">Continue</button>
@@ -154,9 +186,24 @@
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="/public/cdn.jsdelivr.net/npm/bootstrap%405.2.3/dist/js/bootstrap.bundle.min.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.js"></script>
-    <script defer="" src="/public/cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/js/all.min.js" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/izitoast/dist/js/iziToast.min.js"></script>
     <script>
+
+         // Password toggle functionality
+       $(document).ready(function() {
+        $('#togglePassword').on('click', function() {
+            const passwordField = $('#password');
+            const icon = $(this).find('i');
+            
+            if (passwordField.attr('type') === 'password') {
+                passwordField.attr('type', 'text');
+                icon.removeClass('fa-eye').addClass('fa-eye-slash');
+            } else {
+                passwordField.attr('type', 'password');
+                icon.removeClass('fa-eye-slash').addClass('fa-eye');
+            }
+        });
+    });
 
     iziToast.settings({
     icon: 'fontawesome',             // Leave blank

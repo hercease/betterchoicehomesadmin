@@ -9,6 +9,7 @@
     <title>Manage Roles & Permissions - BetterChoiceGroupHomes | Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/litepicker/dist/css/litepicker.css" rel="stylesheet" />
     <link href="/public/css/styles.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.css" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="/public/assets/img/favicon/favicon.ico" />
     <script data-search-pseudo-elements="" defer="" src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/js/all.min.js" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/feather-icons/4.29.0/feather.min.js" crossorigin="anonymous"></script>
@@ -102,7 +103,7 @@
                     <div class="modal-dialog modal-dialog-centered">
                         <div class="modal-content">
                             <div class="modal-header">
-                                <h5 class="modal-title"><i class="fas fa-edit me-2"></i>Add New Role</h5>
+                                <h5 class="modal-title" id="modalTitle"><i class="fas fa-edit me-2"></i>Add New Role</h5>
                                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                             </div>
                             <form id="addrole" name="addrole">
@@ -117,9 +118,36 @@
                                             <input type="text" name="description" class="form-control" placeholder="Enter description ex: Human Resources Manager" required>
                                         </div>
                                         <div class="col-12">
+                                            <label class="form-label">Welcome Message</label>
+                                            <div class="alert alert-info">
+                                                <small><strong>Available placeholders: <br></strong> 
+                                                <code>{name}</code> - User's full name, <br>
+                                                <code>{email}</code> - User's email, <br>
+                                                <code>{password}</code> - Temporary password, <br>
+                                                <code>{loginUrl}</code> - Login URL, <br>
+                                                <code>{playstore}</code> - Play Store URL, <br>
+                                                <code>{appstore}</code> - App Store URL
+                                                </small>
+                                            </div>
+                                            <textarea id="welcome_message_editor" name="welcome_message" class="form-control" required></textarea>
+                                        </div>
+                                        <div class="col-12">
+                                            <label class="form-label">Activation Message</label>
+                                            <div class="alert alert-info">
+                                                <small><strong>Available placeholders: <br></strong> 
+                                                <code>{name}</code> - User's full name, <br>
+                                                <code>{loginUrl}</code> - Login URL, <br>
+                                                <code>{playstore}</code> - Play Store URL, <br>
+                                                <code>{appstore}</code> - App Store URL
+                                                </small>
+                                            </div>
+                                            <textarea id="activation_message_editor" name="activation_message" class="form-control" required></textarea>
+                                        </div>
+                                        <div class="col-12">
                                             <label class="form-label">Tag</label>
                                             <input type="text" name="tag" class="form-control" placeholder="Enter tag ex: hrm" required>
                                         </div>
+                                        <input type="hidden" name="role_id" value="0">
                                     </div>
                                 </div>
                                 <div class="modal-footer">
@@ -137,6 +165,7 @@
     </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.js"></script>
     <script src="/public/js/bootstrap.bundle.min.js"></script>
     <script src="/public/js/scripts.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/litepicker/dist/bundle.js" crossorigin="anonymous"></script>
@@ -144,7 +173,22 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-validate/1.19.5/jquery.validate.min.js"></script>
 
     <script>
-        
+        $('#addRoleModal').on('shown.bs.modal', function () {
+            $('#welcome_message_editor, #activation_message_editor').summernote({
+                placeholder: 'Start typing...',
+                tabsize: 2,
+                height: 100,
+                toolbar: [
+                    ['style', ['style']],
+                    ['font', ['bold', 'underline', 'clear']],
+                    ['color', ['color']],
+                    ['para', ['ul', 'ol', 'paragraph']],
+                    ['table', ['table']],
+                    ['insert', ['link']],
+                    ['view', ['fullscreen', 'codeview', 'help']]
+                ]
+            });
+        });
             const showToast = {
                 success: (message, title = "Success") => {
                     iziToast.success({
@@ -186,10 +230,14 @@
                     if (data.status) {
                         // Close modal and reload roles
                         console.log('Success - attempting to close modal');
+
+                        showToast.success(data.message);
             
                         // FIX: Use Bootstrap's modal instance properly
                         const modalElement = document.getElementById('addRoleModal');
                         const modal = bootstrap.Modal.getInstance(modalElement);
+
+                        
                         
                         if (modal) {
                             modal.hide();
@@ -227,6 +275,9 @@
                             required: true,
                             minlength: 5,
                             maxlength: 500
+                        },
+                        welcome_message: {
+                            required: true
                         }
                     },
                     messages: {
@@ -348,6 +399,9 @@
                                     <a class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); deleteRole(${role.id})">
                                         <i class="fas fa-trash-alt me-1"></i>
                                     </a>
+                                    <a class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); editRole(${role.id})">
+                                        <i class="fas fa-pencil-alt me-1"></i>
+                                    </a>
                                 </div>
                             </div>
                             <div class="row g-3">
@@ -419,6 +473,49 @@
             });
         }
 
+        function editRole(roleId) {
+            fetch(`get_role_details?role_id=${roleId}`)
+                .then(response => response.json())
+                .then(data => {
+                    console.log(data);
+                    if (data.status) {
+                        const role = data.data;
+                        // Populate modal fields
+                        document.getElementById('modalTitle').textContent = `Edit ${role.name} Role`;
+                        $('#addRoleModal input[name="role_id"]').val(role.id);
+                        $('#addRoleModal input[name="role_name"]').val(role.name);
+                        $('#addRoleModal input[name="description"]').val(role.description);
+                        //$('#addRoleModal textarea[name="welcome_message"]').val(role.welcome_message);
+                        $('#addRoleModal input[name="tag"]').val(role.tag);
+                        $('#welcome_message_editor').summernote('code', role.role_message);
+                        $('#activation_message_editor').summernote('code', role.activation_message);
+                        
+                        // Show modal
+                        const editModal = new bootstrap.Modal(document.getElementById('addRoleModal'));
+                        editModal.show();
+                    } else {
+                        iziToast.error({
+                            title: 'Error',
+                            message: data.message || 'Failed to fetch role details'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching role details:', error);
+                    iziToast.error({
+                        title: 'Error',
+                        message: 'Network error occurred'
+                    });
+                });
+        }
+
+        $('#addRoleModal').on('hidden.bs.modal', function () {
+            $('#welcome_message_editor').summernote('destroy');
+            $('#addRoleModal input[name="role_id"]').val(0);
+            document.getElementById('addrole').reset();
+            document.getElementById('modalTitle').textContent = 'Add Role';
+        });
+
         // Function to toggle role active status
         function toggleRole(roleId, isActive) {
             console.log(`Toggling role ${roleId} to ${isActive}`);
@@ -464,7 +561,7 @@
 
         // Function to update individual permission status
         function updatePermissionStatus(roleId, permissionId, isActive) {
-            console.log(`Updating permission ${permissionId} for role ${roleId} to ${isActive}`);
+            //console.log(`Updating permission ${permissionId} for role ${roleId} to ${isActive}`);
             const checkbox = document.querySelector(
                 `input[data-role-id="${roleId}"][data-permission-id="${permissionId}"]`
             );

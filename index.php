@@ -121,6 +121,11 @@ switch ($url) {
             $modelController->getDocumentList();
         }
         break;
+    case '/get_role_details':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET'){
+            $modelController->getRoleDetails();
+        }
+        break;
     case '/handlelogin':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $modelController->handleLogin();

@@ -339,7 +339,7 @@
 
         try {
             $input = [];
-            $requiredFields = $_POST['role'] == 'dos' ? ['firstname', 'lastname', 'email', 'role'] : ['firstname', 'lastname', 'email', 'role', 'location'];
+            $requiredFields = $_POST['role'] == 'staff' ? ['firstname', 'lastname', 'email', 'role', 'location'] : ['firstname', 'lastname', 'email', 'role'];
 
             foreach ($requiredFields as $field) {
                 $input[$field] = $this->allmodels->sanitizeInput($_POST[$field] ?? '');
@@ -382,182 +382,15 @@
             $year = date('Y');
             $logo = BASE_URL . 'public/assets/img/better-icon-removebg-preview.png';
             if($isNew){
-                switch ($input['role']) {
-                    case 'hr':
-                        $roleMessage = "
-                            <h2>Hello {$name},</h2>
-                            <p>Welcome to the team! We are excited to have you step into your new role in Human Resources. 
-                            Your expertise will be key in supporting our people and cultivating a positive, inclusive workplace culture.
-                            </p>
-                            <p>To get started, please log in and complete your profile using the link below:</p>
-                            <ol>
-                                <li>Login using these credentials:<br>
-                                    <strong>Email:</strong> {$input['email']}<br>
-                                    <strong>Password:</strong> {$password}
-                                </li>
-                                <li>You can always change your password in your account.</li>
-                            </ol>
-                            <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
-                            <p>To complete your hiring process, please follow these steps:</p>
-                            <ol>
-                                <li>Download our mobile app from the Google Play Store or Apple App Store.</li>
-                                <li>Login using these credentials:<br>
-                                    <strong>Email:</strong> {$input['email']}<br>
-                                    <strong>Password:</strong> {$password}
-                                </li>
-                                <li>Complete your application profile in the app.</li>
-                            </ol>
-                            <p><a href='" . PLAYSTORE_URL . "' class='button'>Download On Android Playstore</a></p>
-                            <p><a href='" . APPLESTORE_URL . "' class='button'>Download On Apple App Store</a></p>
-                        ";
-                        break;
 
-                    case 'manager':
-                        $roleMessage = "
-                            <h2>Dear {$name},</h2>
-                            <p>We are excited to welcome you as a Manager! Your leadership will be vital in guiding our team, 
-                            ensuring quality service delivery, and fostering a supportive environment for both staff and clients.
-                            </p>
-                            <p>To get started, please log in and complete your profile using the link below:</p>
-                            <ol>
-                                <li>Login using these credentials:<br>
-                                    <strong>Email:</strong> {$input['email']}<br>
-                                    <strong>Password:</strong> {$password}
-                                </li>
-                                <li>You can always change your password in your account.</li>
-                            </ol>
-                            <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
-                            <p>To complete your hiring process, please follow these steps:</p>
-                            <ol>
-                                <li>Download our mobile app from the Google Play Store or Apple App Store.</li>
-                                <li>Login using these credentials:<br>
-                                    <strong>Email:</strong> {$input['email']}<br>
-                                    <strong>Password:</strong> {$password}
-                                </li>
-                                <li>Complete your application profile in the app.</li>
-                            </ol>
-                            <p><a href='" . PLAYSTORE_URL . "' class='button'>Download Our App</a></p>
-                            <p><a href='" . APPLESTORE_URL . "' class='button'>Download On Apple App Store</a></p>
-                        ";
-                        break;
-
-                    case 'scheduler':
-                        $roleMessage = "
-                            <h2>Hi {$name},</h2>
-                            <p>Welcome aboard! We are excited to have you join us as a Scheduler. Your attention to detail and 
-                            coordination will help keep everything running smoothly and ensure our team stays organized and efficient.
-                            </p>
-                            <p>To get started, please log in and complete your profile information using the link below:</p>
-                            <ol>
-                                <li>Login using these credentials:<br>
-                                    <strong>Email:</strong> {$input['email']}<br>
-                                    <strong>Password:</strong> {$password}
-                                </li>
-                                <li>You can always change your password in your account.</li>
-                            </ol>
-                            <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
-                            <p>To complete your hiring process, please follow these steps:</p>
-                            <ol>
-                                <li>Download our mobile app from the Google Play Store or Apple App Store.</li>
-                                <li>Login using these credentials:<br>
-                                    <strong>Email:</strong> {$input['email']}<br>
-                                    <strong>Password:</strong> {$password}
-                                </li>
-                                <li>Complete your application profile in the app.</li>
-                            </ol>
-                            <p><a href='" . PLAYSTORE_URL . "' class='button'>Download On Android Playstore</a></p>
-                            <p><a href='" . APPLESTORE_URL . "' class='button'>Download On Apple App Store</a></p>
-                        ";
-                        break;
-
-                    case 'accountant':
-                        $roleMessage = "
-                            <h2>Hello {$name},</h2>
-                            <p>We are happy to have you join as an <strong>Accountant</strong>. 
-                            Your attention to detail and financial stewardship is vital to our growth and stability.</p>
-                            <p>To get started, please log in and complete your profile information using the link below:</p>
-                            <ol>
-                                <li>Login using these credentials:<br>
-                                    <strong>Email:</strong> {$input['email']}<br>
-                                    <strong>Password:</strong> {$password}
-                                </li>
-                                <li>You can always change your password in your account.</li>
-                            </ol>
-                            <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
-                            <p>To complete your hiring process, please follow these steps:</p>
-                            <ol>
-                                <li>Download our mobile app from the Google Play Store or Apple App Store.</li>
-                                <li>Login using these credentials:<br>
-                                    <strong>Email:</strong> {$input['email']}<br>
-                                    <strong>Password:</strong> {$password}
-                                </li>
-                                <li>Complete your application profile in the app.</li>
-                            </ol>
-                            <p><a href='" . PLAYSTORE_URL . "' class='button'>Download On Android Playstore</a></p>
-                            <p><a href='" . APPLESTORE_URL . "' class='button'>Download On Apple App Store</a></p>
-                        ";
-                        break;
-
-                    case 'dos':
-                        $roleMessage = "
-                            <h2>Dear {$name},</h2>
-                            <p>We are thrilled to welcome you to our executive team as the Director of Services! Your experience and leadership will be instrumental 
-                            in enhancing the quality of our support and driving positive outcomes for both our clients and our team.</p>
-                            <p>To get started, please log in and complete your profile using the link below so we can finish setting everything up:</p>
-                            <ol>
-                                <li>Login using these credentials:<br>
-                                    <strong>Email:</strong> {$input['email']}<br>
-                                    <strong>Password:</strong> {$password}
-                                </li>
-                                <li>You can always change your password in your account.</li>
-                            </ol>
-                            <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
-                        ";
-                        break;
-
-                    case 'ed':
-                        $roleMessage = "
-                            <h2>Dear {$name},</h2>
-                            <p>We are thrilled to welcome you to our executive team as the Executive Director! Your experience and leadership will be instrumental 
-                            in enhancing the quality of our support and driving positive outcomes for both our clients and our team.</p>
-                            <p>To get started, please log in and complete your profile using the link below so we can finish setting everything up:</p>
-                            <ol>
-                                <li>Login using these credentials:<br>
-                                    <strong>Email:</strong> {$input['email']}<br>
-                                    <strong>Password:</strong> {$password}
-                                </li>
-                                <li>You can always change your password in your account.</li>
-                            </ol>
-                            <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
-                        ";
-                        break;
-
-                    case 'staff':
-                        $roleMessage = "
-                            <h2>Dear {$name},</h2>
-                            <p>Welcome! We are so happy to have you on board as part of our Direct Support Staff. 
-                            Your role is essential in helping our clients live fulfilling lives, and we are grateful you have chosen to be part of this mission.
-                            </p>
-                            <p>Thank you for joining <strong>Better Choice Group Homes</strong>. 
-                            <p>To complete your hiring process, please follow these steps:</p>
-                            <ol>
-                                <li>Download our mobile app from the Google Play Store or Apple App Store.</li>
-                                <li>Login using these credentials:<br>
-                                    <strong>Email:</strong> {$input['email']}<br>
-                                    <strong>Password:</strong> {$password}
-                                </li>
-                                <li>Complete your application profile in the app.</li>
-                            </ol>
-                            <p><a href='" . PLAYSTORE_URL . "' class='button'>Download On Android Playstore</a></p>
-                            <p><a href='" . APPLESTORE_URL . "' class='button'>Download On Apple App Store</a></p>
-                        ";
-                        break;
-
-                    default:
-                        throw new Exception("Invalid role");
-                }
-
-
+                $fetch_role_details = $this->allmodels->getRoleByIdOrTag($input['role']);
+                $roleMessage = str_replace(
+                        ['{name}', '{email}', '{role}', '{password}', '{loginUrl}', '{playstore}', '{appstore}'],
+                        [$name, $input['email'], $fetch_role_details['data']['name'], $password, $loginUrl, PLAYSTORE_URL, APPLESTORE_URL],
+                        $fetch_role_details['data']['role_message']
+                );
+                
+            
                 $message = <<<EMAIL
                     <!DOCTYPE html>
                     <html lang="en">
@@ -718,64 +551,12 @@
 
             $logmessage =  $status === 1 ? 'Deactivated ' . $userInfo['email'] . ' successfully' : 'Account ' . $userInfo['email'] . ' successfully activated';
 
-            switch ($userInfo['role']) {
-                case 'hr':
-                    $roleMessage = "
-                        <h2>Hello {$name},</h2>
-                        <p>Your HR account has been <strong>successfully activated</strong> at Better Choice Homes. 
-                        You can now log in to access your dashboard and manage resources.</p>
-                        <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
-                    ";
-                    break;
-
-                case 'manager':
-                    $roleMessage = "
-                        <h2>Dear {$name},</h2>
-                        <p>Great news! Your <strong>Manager account</strong> is now active. 
-                        Please log in to begin accessing your dashboard and management tools.</p>
-                        <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
-                    ";
-                    break;
-
-                case 'scheduler':
-                    $roleMessage = "
-                        <h2>Hi {$name},</h2>
-                        <p>Your <strong>Scheduler account</strong> is now active! 
-                        You can log in right away and start managing schedules.</p>
-                        <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
-                    ";
-                    break;
-
-                case 'accountant':
-                    $roleMessage = "
-                        <h2>Hello {$name},</h2>
-                        <p>Your <strong>Accountant account</strong> has been successfully activated. 
-                        You now have access to financial tools and reports in your dashboard.</p>
-                        <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
-                    ";
-                    break;
-
-                case 'dos':
-                    $roleMessage = "
-                        <h2>Dear {$name},</h2>
-                        <p>Your <strong>Director of Services account</strong> is now active. 
-                        Log in to your executive dashboard to oversee service operations.</p>
-                        <p><a href='{$loginUrl}' class='button'>Login to Dashboard</a></p>
-                    ";
-                    break;
-
-                case 'staff':
-                    $roleMessage = "
-                        <h2>Dear {$name},</h2>
-                        <p>We are pleased to inform you that your <strong>Staff account</strong> has been activated. 
-                        Please log in via the mobile app to continue with your application and daily tasks.</p>
-                        <p><a href='" . PLAYSTORE_URL . "' class='button playstore-button'>Download Our App</a></p>
-                    ";
-                    break;
-
-                default:
-                    throw new Exception("Invalid role");
-            }
+                $fetch_role_details = $this->allmodels->getRoleByIdOrTag($userInfo['role']);
+                $roleMessage = str_replace(
+                        ['{name}', '{role}', '{loginUrl}', '{playstore}', '{appstore}'],
+                        [$name, $fetch_role_details['data']['name'], $loginUrl, PLAYSTORE_URL, APPLESTORE_URL],
+                        $fetch_role_details['data']['activation_message']
+                );
 
             $message = <<<EMAIL
                     <!DOCTYPE html>
@@ -2616,8 +2397,11 @@
         $name = $this->allmodels->sanitizeInput($_POST['role_name'] ?? '');
         $description = $this->allmodels->sanitizeInput($_POST['description'] ?? '');
         $tag = $this->allmodels->sanitizeInput($_POST['tag'] ?? '');
+        $welcomeMessage = $_POST['welcome_message'] ?? '';
+        $activationMessage = $_POST['activation_message'] ?? '';
+        $id = $_POST['role_id'] ?? 0;
 
-        $response = $this->allmodels->addRole($name, $description, $tag);
+        $response = $this->allmodels->addRole($name, $description, $tag, $welcomeMessage, $id, $activationMessage);
 
         echo json_encode($response);
     }
@@ -2626,6 +2410,14 @@
         $roleId = isset($_POST['role_id']) ? (int)$_POST['role_id'] : 0;
 
         $response = $this->allmodels->deleteRole($roleId);
+
+        echo json_encode($response);
+    }
+
+    public function getRoleDetails(){
+        $roleId = isset($_GET['role_id']) ? (int)$_GET['role_id'] : 0;
+
+        $response = $this->allmodels->getRoleByIdOrTag($roleId);
 
         echo json_encode($response);
     }
