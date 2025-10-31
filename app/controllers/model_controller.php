@@ -2272,8 +2272,6 @@
 
     public function getRolesPermissions() {
         // Enable error visibility for development
-        ini_set('display_errors', 0);
-        error_reporting(E_ALL);
 
         try {
             // Step 1: Fetch all roles
