@@ -351,7 +351,7 @@ class allmodels{
                 $paramTypes .= "s";
             }
 
-            $query .= "$searchQuery ORDER BY id DESC LIMIT ?, ?";
+            $query .= "$searchQuery ORDER BY id ASC LIMIT ?, ?";
 
         } elseif ($tabletype === 'usercertificates') {
             
