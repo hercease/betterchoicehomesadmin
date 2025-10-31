@@ -285,7 +285,9 @@
                     
                     if (data.status) {
                         // Close modal and reload documents
-                        const modal = new bootstrap.Modal(document.getElementById('addDocumentModal'));
+
+                        const modalElement = document.getElementById('addDocumentModal');
+                        const modal = bootstrap.Modal.getInstance(modalElement);
                         modal.hide();
                         loadDocuments();
                         form.reset();
