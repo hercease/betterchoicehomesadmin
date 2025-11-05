@@ -158,6 +158,11 @@
 
     }
 
+    public function runScheduleCheck(){
+        $res = $this->allmodels->processUnsentSchedules();
+        echo json_encode($res);
+    }
+
     public function fetchAllUsersData() {
         session_start();
         // Fetch data for DataTables

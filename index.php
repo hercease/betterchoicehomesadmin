@@ -126,6 +126,11 @@ switch ($url) {
             $modelController->getRoleDetails();
         }
         break;
+    case '/run_schedule_check':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET'){
+            $modelController->runScheduleCheck();
+        }
+        break;
     case '/handlelogin':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $modelController->handleLogin();

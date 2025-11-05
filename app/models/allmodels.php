@@ -244,6 +244,276 @@ class allmodels{
         }
     }
 
+    public function sendPushToMobile($to, $title, $body) {
+        $data = [
+            "to" => $to,
+            "sound" => "default",
+            "title" => $title,
+            "body" => $body,
+        ];
+
+        $ch = curl_init("https://exp.host/--/api/v2/push/send");
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ["Content-Type: application/json"]);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
+        $response = curl_exec($ch);
+        curl_close($ch);
+
+        return $response;
+    }
+
+    public function processUnsentSchedules() {
+        try {
+            // Get all user_ids with unsent schedules
+            $query = "SELECT user_id FROM scheduling WHERE mailer = 0 LIMIT 1";
+            $stmt = $this->db->prepare($query);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if ($result->num_rows == 0) return;
+            $row = $result->fetch_assoc();
+            $userId = $row['user_id'];
+
+            $this->sendScheduleEmail($userId);
+
+            return ['success' => true, 'message' => 'Email sent successfully'];
+        } catch (Exception $e) {
+            return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    public function fetchMobileNotificationToken($email) {
+        $query = "SELECT token FROM notification_token WHERE email = ?";
+        $stmt = $this->db->prepare($query);
+        $stmt->bind_param('s', $email);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        return $row['token'] ?? '';
+    }
+
+    private function sendScheduleEmail($userId) {
+        // Get user details
+        $user = $this->getUserInfo($userId);
+        if (!$user) return;
+
+        // Fetch Notification Token
+        $token = $this->fetchMobileNotificationToken($user['email']);
+
+        // Get all unsent schedules for this user
+        $schedules = $this->getUserSchedules($userId);
+        if (empty($schedules)) return;
+
+        // Prepare email content
+        $emailContent = $this->prepareEmailTemplate($user, $schedules);
+
+        // Send email
+        $this->sendmail($user['email'], $user['lastname'].' '.$user['firstname'], $emailContent, 'Your Schedule');
+
+        // Mark schedules as sent
+        $this->markSchedulesAsSent($userId);
+
+        // Send push notification
+        !empty($token) && $this->sendPushToMobile($token, 'Schedule Update', 'You have a new schedule appointment.'); 
+    }
+
+    private function prepareEmailTemplate($user, $schedules) {
+        $scheduleRows = '';
+        $totalHours = 0;
+        $totalEarnings = 0;
+    
+        foreach ($schedules as $schedule) {
+            $startTime = date('h:i A', strtotime($schedule['start_time']));
+            $endTime = date('h:i A', strtotime($schedule['end_time']));
+            $scheduleDate = date('D, M j, Y', strtotime($schedule['schedule_date']));
+            
+            $shiftType = $schedule['shift_type'];
+            if ($shiftType === 'overnight' && !empty($schedule['overnight_type'])) {
+                $shiftType .= ' (' . $schedule['overnight_type'] . ')';
+            }
+    
+            // Calculate hours and earnings
+            $hours = (strtotime($schedule['end_time']) - strtotime($schedule['start_time'])) / 3600;
+            $earnings = $hours * $schedule['pay_per_hour'];
+            
+            $totalHours += $hours;
+            $totalEarnings += $earnings;
+    
+            $scheduleRows .= "
+            <tr>
+                <td style='padding: 12px; border: 1px solid #e0e0e0; font-family: Arial, sans-serif; font-size: 14px;'>{$scheduleDate}</td>
+                <td style='padding: 12px; border: 1px solid #e0e0e0; font-family: Arial, sans-serif; font-size: 14px;'>{$schedule['location_name']}</td>
+                <td style='padding: 12px; border: 1px solid #e0e0e0; font-family: Arial, sans-serif; font-size: 14px;'>{$startTime}</td>
+                <td style='padding: 12px; border: 1px solid #e0e0e0; font-family: Arial, sans-serif; font-size: 14px;'>{$endTime}</td>
+                <td style='padding: 12px; border: 1px solid #e0e0e0; font-family: Arial, sans-serif; font-size: 14px;'>{$shiftType}</td>
+                <td style='padding: 12px; border: 1px solid #e0e0e0; font-family: Arial, sans-serif; font-size: 14px;'>$" . number_format($schedule['pay_per_hour'], 2) . "</td>
+                <td style='padding: 12px; border: 1px solid #e0e0e0; font-family: Arial, sans-serif; font-size: 14px;'>" . number_format($hours, 2) . "h</td>
+                <td style='padding: 12px; border: 1px solid #e0e0e0; font-family: Arial, sans-serif; font-size: 14px;'>$" . number_format($earnings, 2) . "</td>
+            </tr>";
+        }
+    
+        return $this->getEmailTemplate($user, $scheduleRows, $totalHours, $totalEarnings, $schedules);
+    }
+    
+    private function getEmailTemplate($user, $scheduleRows, $totalHours, $totalEarnings, $schedules) {
+        $mobileCards = $this->generateMobileCards($schedules);
+        
+        return "
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset='utf-8'>
+            <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+            <title>Your Schedule</title>
+            <!--[if !mso]><!-->
+            <style type='text/css'>
+                /* Mobile Styles */
+                @media only screen and (max-width: 620px) {
+                    .container {
+                        width: 100% !important;
+                        margin: 0 !important;
+                        border-radius: 0 !important;
+                    }
+                    .desktop-table {
+                        display: none !important;
+                    }
+                    .mobile-view {
+                        display: block !important;
+                    }
+                    .mobile-card {
+                        display: block !important;
+                        width: 100% !important;
+                    }
+                }
+                /* Desktop Styles */
+                @media only screen and (min-width: 621px) {
+                    .mobile-view {
+                        display: none !important;
+                    }
+                    .desktop-table {
+                        display: block !important;
+                    }
+                }
+            </style>
+            <!--<![endif]-->
+        </head>
+        <body style='margin: 0; padding: 0; font-family: Arial, sans-serif; line-height: 1.6; color: #333333; background-color: #f4f6f9;'>
+            <div class='container' style='max-width: 800px; margin: 20px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.08);'>
+                <!-- Header -->
+                <div style='background: linear-gradient(135deg, #004aad 0%, #00a859 100%); color: #ffffff; text-align: center; padding: 35px 20px;'>
+                    <h1 style='margin: 0; font-size: 24px; letter-spacing: 0.5px; font-family: Arial, sans-serif;'>Your Upcoming Schedule</h1>
+                    <p style='margin: 6px 0 0; font-size: 15px; font-family: Arial, sans-serif;'>Hello {$user['lastname']}, here are your scheduled shifts</p>
+                </div>
+                
+                <!-- Content -->
+                <div style='padding: 30px;'>
+                    <!-- Summary Highlight -->
+                    <div style='background: #e8f1ff; border-left: 5px solid #004aad; padding: 15px 20px; border-radius: 6px; margin-bottom: 25px; font-size: 15px; font-family: Arial, sans-serif;'>
+                        <strong>📋 Schedule Summary:</strong><br>
+                        You have " . count($schedules) . " shifts scheduled.
+                    </div>
+    
+                    <!-- Desktop Table View -->
+                    <div class='desktop-table' style='overflow-x: auto;'>
+                        <table class='schedule-table' style='width: 100%; border-collapse: collapse; margin-top: 10px; min-width: 750px;'>
+                            <thead>
+                                <tr>
+                                    <th style='background: #004aad; color: #ffffff; padding: 14px; text-align: left; font-size: 14px; font-family: Arial, sans-serif; font-weight: bold;'>Date</th>
+                                    <th style='background: #004aad; color: #ffffff; padding: 14px; text-align: left; font-size: 14px; font-family: Arial, sans-serif; font-weight: bold;'>Location</th>
+                                    <th style='background: #004aad; color: #ffffff; padding: 14px; text-align: left; font-size: 14px; font-family: Arial, sans-serif; font-weight: bold;'>Start Time</th>
+                                    <th style='background: #004aad; color: #ffffff; padding: 14px; text-align: left; font-size: 14px; font-family: Arial, sans-serif; font-weight: bold;'>End Time</th>
+                                    <th style='background: #004aad; color: #ffffff; padding: 14px; text-align: left; font-size: 14px; font-family: Arial, sans-serif; font-weight: bold;'>Shift Type</th>
+                                    <th style='background: #004aad; color: #ffffff; padding: 14px; text-align: left; font-size: 14px; font-family: Arial, sans-serif; font-weight: bold;'>Rate/Hour</th>
+                                    <th style='background: #004aad; color: #ffffff; padding: 14px; text-align: left; font-size: 14px; font-family: Arial, sans-serif; font-weight: bold;'>Hours</th>
+                                    <th style='background: #004aad; color: #ffffff; padding: 14px; text-align: left; font-size: 14px; font-family: Arial, sans-serif; font-weight: bold;'>Earnings</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {$scheduleRows}
+                                <tr style='background: #e8f5e8 !important; font-weight: bold; color: #004aad;'>
+                                    <td colspan='6' style='padding: 12px; border: 1px solid #e0e0e0; text-align: right; font-family: Arial, sans-serif; font-size: 14px;'><strong>Total:</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #e0e0e0; font-family: Arial, sans-serif; font-size: 14px;'><strong>" . number_format($totalHours, 2) . "h</strong></td>
+                                    <td style='padding: 12px; border: 1px solid #e0e0e0; font-family: Arial, sans-serif; font-size: 14px;'><strong>$" . number_format($totalEarnings, 2) . "</strong></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+    
+                    <!-- Mobile Card View -->
+                    <div class='mobile-view' style='display: none;'>
+                        {$mobileCards}
+                        <div style='background: #e8f5e8; border: 1px solid #cce5cc; padding: 12px; border-radius: 6px; text-align: center; color: #004aad; font-weight: bold; margin-top: 20px; font-family: Arial, sans-serif;'>
+                            Total Hours: " . number_format($totalHours, 2) . "h &nbsp; | &nbsp; Total Earnings: $" . number_format($totalEarnings, 2) . "
+                        </div>
+                    </div>
+                </div>
+    
+                <!-- Footer -->
+                <div style='text-align: center; background: #f4f6f9; padding: 25px; color: #666666; font-size: 14px; font-family: Arial, sans-serif;'>
+                    <p style='margin: 0 0 10px 0;'>If you have any questions about your schedule, please contact the HR department.</p>
+                    <p style='margin: 0;'>© " . date('Y') . " <strong>Better Choice Group Homes</strong>. All rights reserved.</p>
+                </div>
+            </div>
+        </body>
+        </html>";
+    }
+    
+    private function generateMobileCards($schedules) {
+        $cards = '';
+        foreach ($schedules as $schedule) {
+            $scheduleDate = date('D, M j, Y', strtotime($schedule['schedule_date']));
+            $startTime = date('h:i A', strtotime($schedule['start_time']));
+            $endTime = date('h:i A', strtotime($schedule['end_time']));
+            $shiftType = $schedule['shift_type'];
+            if ($shiftType === 'overnight' && !empty($schedule['overnight_type'])) {
+                $shiftType .= ' (' . $schedule['overnight_type'] . ')';
+            }
+            $hours = (strtotime($schedule['end_time']) - strtotime($schedule['start_time'])) / 3600;
+            $earnings = $hours * $schedule['pay_per_hour'];
+    
+            $cards .= "
+            <div class='mobile-card' style='display: none; background: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; padding: 16px; margin-bottom: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); font-family: Arial, sans-serif;'>
+                <h3 style='margin: 0 0 8px 0; color: #004aad; font-size: 16px; font-family: Arial, sans-serif; font-weight: bold;'>{$schedule['location_name']}</h3>
+                <p style='margin: 4px 0; font-size: 14px; line-height: 1.4; font-family: Arial, sans-serif;'><strong>Date:</strong> {$scheduleDate}</p>
+                <p style='margin: 4px 0; font-size: 14px; line-height: 1.4; font-family: Arial, sans-serif;'><strong>Time:</strong> {$startTime} - {$endTime}</p>
+                <p style='margin: 4px 0; font-size: 14px; line-height: 1.4; font-family: Arial, sans-serif;'><strong>Shift:</strong> {$shiftType}</p>
+                <p style='margin: 4px 0; font-size: 14px; line-height: 1.4; font-family: Arial, sans-serif;'><strong>Rate:</strong> $" . number_format($schedule['pay_per_hour'], 2) . "/hr</p>
+                <p style='margin: 4px 0; font-size: 14px; line-height: 1.4; font-family: Arial, sans-serif;'><strong>Hours:</strong> " . number_format($hours, 2) . "h</p>
+                <p style='margin: 4px 0; font-size: 14px; line-height: 1.4; font-family: Arial, sans-serif;'><strong>Earnings:</strong> $" . number_format($earnings, 2) . "</p>
+            </div>";
+        }
+        return $cards;
+    }
+    
+    
+
+    private function markSchedulesAsSent($userId) {
+        $query = "UPDATE scheduling SET mailer = 1 WHERE user_id = ? AND mailer = 0";
+        $stmt = $this->db->prepare($query);
+        $stmt->bind_param('i', $userId);
+        $stmt->execute();
+    }
+
+    private function getUserSchedules($userId) {
+        $query = "SELECT 
+                    s.location_name, 
+                    s.start_time, 
+                    s.end_time, 
+                    s.shift_type, 
+                    s.overnight_type,
+                    s.schedule_date,
+                    s.pay_per_hour
+                  FROM scheduling s 
+                  WHERE s.user_id = ? AND s.mailer = 0
+                  ORDER BY s.schedule_date, s.start_time";
+        
+        $stmt = $this->db->prepare($query);
+        $stmt->bind_param('i', $userId);
+        $stmt->execute();
+        return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+    }
+
+
 
     function getCoordinatesFromAddress($address, $apiKey) {
 
