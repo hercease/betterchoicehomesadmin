@@ -1031,7 +1031,7 @@
                 unlink(UPLOAD_URL . $name);
             }
 
-            $stmt = $this->db->prepare("DELETE FROM $type WHERE id = ?");
+            $stmt = $this->db->prepare("UPDATE $type SET name = '' WHERE id = ?");
             $stmt->bind_param("i", $id);
             $stmt->execute();
 

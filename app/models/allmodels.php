@@ -616,7 +616,7 @@ class allmodels{
             $query = "SELECT * FROM documents WHERE user_id = $userId ";
 
             if (!empty($searchValue)) {
-                $searchQuery = " AND doc-tag LIKE ?";
+                $searchQuery = " AND doc_tag LIKE ?";
                 $params[] = "%$searchValue%";
                 $paramTypes .= "s";
             }
