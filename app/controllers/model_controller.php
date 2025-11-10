@@ -2394,7 +2394,7 @@
         $name = trim($_POST['name']);
         $tag = trim($_POST['tag'] ?? '');
         $sort_order = $_POST['sort_order'] ?? 0;
-        $is_required = isset($_POST['is_required']) ? 1 : 0;
+        $is_required = isset($_POST['is_required']) ? 0 : 1;
         $response = $this->allmodels->saveDocument($id, $name, $tag, $sort_order, $is_required);
 
         echo json_encode($response);

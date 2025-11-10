@@ -1349,7 +1349,7 @@ class allmodels{
                 }
 
                 foreach ($fetch_document_types['documents'] as $docs) {
-                    $optional = $docs['is_required'] === true ? 1 : 0;
+                    $optional = $docs['is_required'] === true ? 0 : 1;
                     $docStmt->bind_param("issssi", $userId, $docs['name'], $docs['tag'], $now, $now, $optional);
                     if (!$docStmt->execute()) {
                         throw new Exception("Failed to insert document record for {$docs['tag']}: " . $docStmt->error);
