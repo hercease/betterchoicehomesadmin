@@ -137,6 +137,40 @@
                 padding: 0;
             }
         }
+        .staff-header {
+            border-left: 4px solid #0d6efd;
+        }
+
+        .staff-summary {
+            background-color: #f8f9fa !important;
+        }
+
+        .spacer-row td {
+            border: none !important;
+            background-color: transparent !important;
+        }
+
+        .staff-schedule td:first-child {
+            border-left: 2px solid #dee2e6;
+        }
+
+        .staff-schedule:last-child td {
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        /* Print styles for staff grouping */
+        @media print {
+            .staff-section {
+                page-break-inside: avoid;
+                margin-bottom: 20px;
+            }
+            
+            .staff-name {
+                background-color: #f8f9fa !important;
+                color: #000 !important;
+                border: 1px solid #dee2e6 !important;
+            }
+        }
         </style>
 </head>
 <body class="nav-fixed">
@@ -449,38 +483,76 @@
                                 $('#totalRecords').text(response.pagination.totalRecords);
                                 $('#totalHours').text(response.summary.totalHours);
                                 
-                                // Format date range for display
-                                //const startDateDisplay = startDate ? new Date(startDate).toLocaleDateString() : 'Start';
-                                //const endDateDisplay = endDate ? new Date(endDate).toLocaleDateString() : 'End';
-                                //$('#displayDateRange').text(`${startDateDisplay} to ${endDateDisplay}`);
-                                
-                                // Populate table
+                                // Populate table with grouped data
                                 const $tbody = $('#resultsBody');
                                 $tbody.empty();
                                 const $tfooter = $('#resultsFooter');
                                 $tfooter.empty();
                                 
-                                response.data.forEach(function(schedule, index) {
-                                    const rowNum = ((page - 1) * 10) + index + 1;
-                                    const statusClass = schedule.status === 'Completed' ? 'bg-success' : 
-                                                    schedule.status === 'In Progress' ? 'bg-warning' : 'bg-secondary';
-                                    const overnight_type = schedule.shift_type==='overnight' ? `(${schedule.overnight_type})` : '';
-                                    
+                                let rowNum = ((page - 1) * 10) + 1;
+                                let grandTotalPay = 0;
+                                
+                                response.data.forEach(function(staff, staffIndex) {
+                                    // Staff header row
                                     $tbody.append(`
-                                        <tr>
-                                            <td>${rowNum}</td>
-                                            <td>${schedule.name}</td>
-                                            <td>${schedule.location}</td>
-                                            <td>${schedule.schedule_date}</td>
-                                            <td>${schedule.scheduled_time}</td>
-                                            <td>${schedule.shift_type + overnight_type}</td>
-                                            <td>CAD${schedule.pay_per_hour}</td>
-                                            <td>${schedule.actual_time}</td>
-                                            <td>CAD${schedule.pay}</td>
-                                            <td><span class="badge ${statusClass}">${schedule.status}</span></td>
+                                        <tr class="staff-header bg-light">
+                                            <td colspan="10" class="p-3">
+                                                <h5 class="mb-0 text-primary">
+                                                    <i class="bi bi-person-circle me-2"></i>
+                                                    ${staff.name}
+                                                    <small class="text-muted ms-2">(${staff.email})</small>
+                                                </h5>
+                                            </td>
                                         </tr>
                                     `);
+                                    
+                                    // Staff schedules
+                                    staff.schedules.forEach(function(schedule, scheduleIndex) {
+                                        const statusClass = schedule.status === 'Completed' ? 'bg-success' : 
+                                                        schedule.status === 'In Progress' ? 'bg-warning' : 'bg-secondary';
+                                        const overnight_type = schedule.shift_type==='overnight' ? `(${schedule.overnight_type})` : '';
+                                        
+                                        $tbody.append(`
+                                            <tr class="staff-schedule">
+                                                <td>${rowNum++}</td>
+                                                <td></td> <!-- Empty for staff name since it's in header -->
+                                                <td>${schedule.location}</td>
+                                                <td>${schedule.schedule_date}</td>
+                                                <td>${schedule.scheduled_time}</td>
+                                                <td>${schedule.shift_type + overnight_type}</td>
+                                                <td>CAD${schedule.pay_per_hour}</td>
+                                                <td>${schedule.actual_time} (${schedule.hours_worked})</td>
+                                                <td>CAD${schedule.pay}</td>
+                                                <td><span class="badge ${statusClass}">${schedule.status}</span></td>
+                                            </tr>
+                                        `);
+                                    });
+                                    
+                                    // Staff summary row
+                                    $tbody.append(`
+                                        <tr class="staff-summary bg-light fw-bold">
+                                            <td colspan="7" class="text-end">Total for ${staff.name}:</td>
+                                            <td>${staff.total_hours}</td>
+                                            <td>CAD ${staff.total_pay}</td>
+                                            <td></td>
+                                        </tr>
+                                        <tr class="spacer-row">
+                                            <td colspan="10" style="height: 20px; background-color: transparent;"></td>
+                                        </tr>
+                                    `);
+                                    
+                                    grandTotalPay += parseFloat(staff.total_pay);
                                 });
+
+                                // Add grand total footer
+                                $tfooter.append(`
+                                    <tr>
+                                        <td colspan="7" class="text-end"><strong>GRAND TOTAL:</strong></td>
+                                        <td><strong>${response.summary.totalHours}</strong></td>
+                                        <td><strong>CAD ${grandTotalPay.toFixed(2)}</strong></td>
+                                        <td></td>
+                                    </tr>
+                                `);
 
                                 // Update pagination
                                 updatePagination(response.pagination, page);
@@ -674,48 +746,87 @@
             }
 
             function generatePrintTable(data) {
+                let tableHtml = '';
+                let rowNum = 1;
+                let grandTotalPay = 0;
 
-                let tableHtml = `
-                    <table class="table table-bordered">
-                        <thead class="table-light">
-                            <tr>
-                                <th>#</th>
-                                <th>Employee Email</th>
-                                <th>Location</th>
-                                <th>Schedule Date</th>
-                                <th>Scheduled Time</th>
-                                <th>Shift Type</th>
-                                <th>Pay Rate/hr</th>
-                                <th>Actual Time</th>
-                                <th>Hours Worked</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                    <tbody>`;
-
-                    let rowNum = 1; // Initialize counter
-                
-                data.forEach(item => {
-                    
+                data.forEach(staff => {
                     tableHtml += `
-                        <tr>
-                            <td>${rowNum++}</td>
-                            <td>${item.name}</td>
-                            <td>${item.location}</td>
-                            <td>${item.schedule_date}</td>
-                            <td>${item.scheduled_time}</td>
-                            <td>${item.shift_type}${item.shift_type === 'overnight' ? ' (' + item.overnight_type + ')' : ''}</td>
-                            <td>CAD ${item.pay_per_hour}</td>
-                            <td>${item.actual_time}</td>
-                            <td>CAD ${item.pay}</td>
-                            <td><span class="badge ${getStatusClass(item.status)}">${item.status}</span></td>
-                        </tr>`;
+                        <div class="staff-section mb-4">
+                            <h5 class="staff-name bg-light p-2 border-start border-4 border-primary">
+                                <i class="bi bi-person-circle me-2"></i>
+                                ${staff.name}
+                                <small class="text-muted ms-2">(${staff.email})</small>
+                            </h5>
+                            
+                            <table class="table table-bordered table-sm mb-3">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>#</th>
+                                        <th>Location</th>
+                                        <th>Schedule Date</th>
+                                        <th>Scheduled Time</th>
+                                        <th>Shift Type</th>
+                                        <th>Pay Rate/hr</th>
+                                        <th>Actual Time</th>
+                                        <th>Hours Worked</th>
+                                        <th>Pay</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>`;
+
+                    staff.schedules.forEach(schedule => {
+                        const statusClass = getStatusClass(schedule.status);
+                        const overnight_type = schedule.shift_type === 'overnight' ? ' (' + schedule.overnight_type + ')' : '';
+                        
+                        tableHtml += `
+                            <tr>
+                                <td>${rowNum++}</td>
+                                <td>${schedule.location}</td>
+                                <td>${schedule.schedule_date}</td>
+                                <td>${schedule.scheduled_time}</td>
+                                <td>${schedule.shift_type}${overnight_type}</td>
+                                <td>CAD ${schedule.pay_per_hour}</td>
+                                <td>${schedule.actual_time}</td>
+                                <td>${schedule.hours_worked}</td>
+                                <td>CAD ${schedule.pay}</td>
+                                <td><span class="badge ${statusClass}">${schedule.status}</span></td>
+                            </tr>`;
+                    });
+
+                    tableHtml += `
+                                </tbody>
+                                <tfoot class="table-light">
+                                    <tr>
+                                        <td colspan="7" class="text-end"><strong>Total for ${staff.name}:</strong></td>
+                                        <td><strong>${staff.total_hours}</strong></td>
+                                        <td><strong>CAD ${staff.total_pay}</strong></td>
+                                        <td></td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>`;
+
+                    grandTotalPay += parseFloat(staff.total_pay);
                 });
 
-                tableHtml += `</tbody`;
-                tableHtml += `<tfooter><tr><td colspan="8" class="text-end">TOTAL</td><td>CAD ${data.reduce((total, item) => total + parseFloat(item.pay), 0)}</td></tr></tfooter>`;
-                
-                tableHtml += `</table>`;
+                // Add grand total
+                tableHtml += `
+                    <div class="grand-total mt-4 p-3 bg-dark text-white rounded">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h5 class="mb-0">GRAND TOTAL</h5>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <h5 class="mb-0">Total Hours: ${data.reduce((total, staff) => total + staff.total_minutes, 0) / 60 | 0}h ${data.reduce((total, staff) => total + staff.total_minutes, 0) % 60}m</h5>
+                            </div>
+                            <div class="col-md-3 text-end">
+                                <h5 class="mb-0">Total Pay: CAD ${grandTotalPay.toFixed(2)}</h5>
+                            </div>
+                        </div>
+                    </div>`;
+
                 return tableHtml;
             }
 

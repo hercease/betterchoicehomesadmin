@@ -1306,7 +1306,6 @@
         }
  
         public function generateReports(){
-
             if (session_status() === PHP_SESSION_NONE) {
                 session_start();
             }
@@ -1318,181 +1317,211 @@
 
             $user_role = $userInfo['role'];
             if($userInfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'generate.report')){
-              
-            // Initialize variables
-            $whereClauses = [];
-            $params = [];
-            $types = '';
+            
+                // Initialize variables
+                $whereClauses = [];
+                $params = [];
+                $types = '';
 
-            // Get and sanitize input parameters
-            $email = isset($_POST['email']) ? trim($_POST['email']) : '';
-            $location = isset($_POST['location']) ? trim($_POST['location']) : '';
-            $date_range = isset($_POST['daterange']) ? trim($_POST['daterange']) : '';
-            $isPrint = isset($_POST['print']) && $_POST['print'] === 'true';
+                // Get and sanitize input parameters
+                $email = isset($_POST['email']) ? trim($_POST['email']) : '';
+                $location = isset($_POST['location']) ? trim($_POST['location']) : '';
+                $date_range = isset($_POST['daterange']) ? trim($_POST['daterange']) : '';
+                $isPrint = isset($_POST['print']) && $_POST['print'] === 'true';
 
-           // list($startDate, $endDate) = explode(" - ", $date_range);
+                // Split the range into start and end dates
+                $dates = explode(" - ", $date_range);
+                $startDate = !empty($dates[0]) ? date('Y-m-d', strtotime(trim($dates[0]))) : '';
+                $endDate = !empty($dates[1]) ? date('Y-m-d', strtotime(trim($dates[1]))) : '';
 
-            // Split the range into start and end dates
-            $dates = explode(" - ", $date_range);
+                // Pagination parameters
+                $page = isset($_POST['page']) ? (int)$_POST['page'] : 1;
+                $perPage = isset($_POST['perPage']) ? (int)$_POST['perPage'] : 10;
+                $offset = ($page - 1) * $perPage;
 
-            // Convert each date to MySQL format
-            $startDate = !empty($dates[0]) ? date('Y-m-d', strtotime(trim($dates[0]))) : '';
-            $endDate = !empty($dates[1]) ? date('Y-m-d', strtotime(trim($dates[1]))) : '';
-
-            //error_log('location:  '$location);
-
-            // Pagination parameters
-            $page = isset($_POST['page']) ? (int)$_POST['page'] : 1;
-            $perPage = isset($_POST['perPage']) ? (int)$_POST['perPage'] : 10;
-            $offset = ($page - 1) * $perPage;
-
-            // Build WHERE clauses based on input
-            if (!empty($email)) {
-                $whereClauses[] = "s.email LIKE ?";
-                $params[] = "%$email%";
-                $types .= 's';
-            }
-
-            if (!empty($location)) {
-                $whereClauses[] = "s.location_name = ?";
-                $params[] = $location;
-                $types .= 's';
-            }
-
-            if (!empty($startDate) && !empty($endDate)) {
-                $whereClauses[] = "schedule_date BETWEEN ? AND ?";
-                $params[] = $startDate;
-                $params[] = $endDate;
-                $types .= 'ss';
-            } elseif (!empty($startDate)) {
-                $whereClauses[] = "schedule_date >= ?";
-                $params[] = $startDate;
-                $types .= 's';
-            } elseif (!empty($endDate)) {
-                $whereClauses[] = "schedule_date <= ?";
-                $params[] = $endDate;
-                $types .= 's';
-            }
-
-            // Prepare base query
-            $query = "SELECT 
-                u.firstname, 
-                u.lastname,
-                s.location_name, 
-                s.start_time, 
-                s.end_time, 
-                s.clockin, 
-                s.clockout, 
-                s.schedule_date, 
-                s.shift_type,
-                s.pay_per_hour,
-                s.overnight_type,
-                s.email,
-                TIMESTAMPDIFF(MINUTE, s.clockin, s.clockout) AS minutes_worked
-              FROM scheduling s JOIN users u ON s.email = u.email";
-
-            // Add WHERE clauses if any
-            if (!empty($whereClauses)) {
-                $query .= " WHERE " . implode(" AND ", $whereClauses);
-            }
-
-            // Count total records for pagination
-            $countQuery = "SELECT COUNT(*) as total FROM scheduling s JOIN users u ON s.email = u.email";
-            if (!empty($whereClauses)) {
-                $countQuery .= " WHERE " . implode(" AND ", $whereClauses);
-            }
-            $stmt = $this->db->prepare($countQuery);
-
-            // Bind parameters if any
-            if (!empty($params)) {
-                $stmt->bind_param($types, ...$params);
-            }
-            $stmt->execute();
-            $countResult = $stmt->get_result();
-            $totalRecords = $countResult->fetch_assoc()['total'];
-            $totalPages = ceil($totalRecords / $perPage);
-
-            if (!$isPrint) {
-                // Add pagination to main query
-                $query .= " LIMIT ? OFFSET ?";
-                $params[] = $perPage;
-                $params[] = $offset;
-                $types .= 'ii';
-            }
-
-            // Prepare and execute main query
-            $stmt = $this->db->prepare($query);
-            if (!empty($params)) {
-                $stmt->bind_param($types, ...$params);
-            }
-            $stmt->execute();
-            $result = $stmt->get_result();
-
-            // Process results
-            $schedules = [];
-            $totalMinutes = 0;
-
-            while ($row = $result->fetch_assoc()) {
-                $totalMinutes += $row['minutes_worked'];
-                
-                // Format hours worked
-                $hours = floor($row['minutes_worked'] / 60);
-                $minutes = $row['minutes_worked'] % 60;
-                $hoursWorked = sprintf("%dh %02dm", $hours, $minutes);
-                
-                // Determine status
-                $status = 'Pending';
-                if ($row['clockin'] && $row['clockout']) {
-                    $status = 'Completed';
-                } elseif ($row['clockin']) {
-                    $status = 'In Progress';
+                // Build WHERE clauses based on input
+                if (!empty($email)) {
+                    $whereClauses[] = "s.email LIKE ?";
+                    $params[] = "%$email%";
+                    $types .= 's';
                 }
-                
-                $schedules[] = [
-                    'name' => $row['firstname'] . ' ' . $row['lastname'],
-                    'location' => $row['location_name'],
-                    'schedule_date' => date('D M jS', strtotime($row['schedule_date'])),
-                    'scheduled_time' => date('g:i A', strtotime($row['start_time'])) . ' - ' . date('g:i A', strtotime($row['end_time'])),
-                    'actual_time' => ($row['clockin'] ? date('g:i A', strtotime($row['clockin'])) : 'N/A') . ' - ' . 
-                                    ($row['clockout'] ? date('g:i A', strtotime($row['clockout'])) : 'N/A') .'(' . $hoursWorked . ')',
-                    'shift_type' => $row['shift_type'],
-                    'pay_per_hour' => $row['pay_per_hour'],
-                    'overnight_type' => $row['overnight_type'],
-                    'pay' => number_format($hours * $row['pay_per_hour']),
-                    'status' => $status
-                ];
-            }
 
-            // Format total hours
-            $totalHours = floor($totalMinutes / 60);
-            $totalMinutesRemainder = $totalMinutes % 60;
-            $totalHoursFormatted = sprintf("%dh %02dm", $totalHours, $totalMinutesRemainder);
+                if (!empty($location)) {
+                    $whereClauses[] = "s.location_name = ?";
+                    $params[] = $location;
+                    $types .= 's';
+                }
 
-            // Return JSON response
-            echo json_encode([
-                'success' => true,
-                'data' => $schedules,
-                'generated_by' => $session_mail ?? 'Admin',
-                'pagination' => [
-                    'totalRecords' => $totalRecords,
-                    'totalPages' => $totalPages,
-                    'currentPage' => $page,
-                    'perPage' => $perPage
-                ],
-                'summary' => [
-                    'totalHours' => $totalHoursFormatted,
-                    'totalRecords' => $totalRecords
-                ]
-            ]);
+                if (!empty($startDate) && !empty($endDate)) {
+                    $whereClauses[] = "schedule_date BETWEEN ? AND ?";
+                    $params[] = $startDate;
+                    $params[] = $endDate;
+                    $types .= 'ss';
+                } elseif (!empty($startDate)) {
+                    $whereClauses[] = "schedule_date >= ?";
+                    $params[] = $startDate;
+                    $types .= 's';
+                } elseif (!empty($endDate)) {
+                    $whereClauses[] = "schedule_date <= ?";
+                    $params[] = $endDate;
+                    $types .= 's';
+                }
 
-            $stmt->close();
-            $this->db->close();
+                // Prepare base query
+                $query = "SELECT 
+                    u.firstname, 
+                    u.lastname,
+                    u.email as staff_email,
+                    s.location_name, 
+                    s.start_time, 
+                    s.end_time, 
+                    s.clockin, 
+                    s.clockout, 
+                    s.schedule_date, 
+                    s.shift_type,
+                    s.pay_per_hour,
+                    s.overnight_type,
+                    TIMESTAMPDIFF(MINUTE, s.clockin, s.clockout) AS minutes_worked
+                FROM scheduling s JOIN users u ON s.email = u.email";
+
+                // Add WHERE clauses if any
+                if (!empty($whereClauses)) {
+                    $query .= " WHERE " . implode(" AND ", $whereClauses);
+                }
+
+                // Order by staff name and date
+                $query .= " ORDER BY u.firstname, u.lastname, s.schedule_date, s.start_time";
+
+                // Count total records for pagination
+                $countQuery = "SELECT COUNT(*) as total FROM scheduling s JOIN users u ON s.email = u.email";
+                if (!empty($whereClauses)) {
+                    $countQuery .= " WHERE " . implode(" AND ", $whereClauses);
+                }
+                $stmt = $this->db->prepare($countQuery);
+
+                // Bind parameters if any
+                if (!empty($params)) {
+                    $stmt->bind_param($types, ...$params);
+                }
+                $stmt->execute();
+                $countResult = $stmt->get_result();
+                $totalRecords = $countResult->fetch_assoc()['total'];
+                $totalPages = ceil($totalRecords / $perPage);
+
+                if (!$isPrint) {
+                    // Add pagination to main query
+                    $query .= " LIMIT ? OFFSET ?";
+                    $params[] = $perPage;
+                    $params[] = $offset;
+                    $types .= 'ii';
+                }
+
+                // Prepare and execute main query
+                $stmt = $this->db->prepare($query);
+                if (!empty($params)) {
+                    $stmt->bind_param($types, ...$params);
+                }
+                $stmt->execute();
+                $result = $stmt->get_result();
+
+                // Process results and group by staff
+                $staffSchedules = [];
+                $totalMinutes = 0;
+                $currentStaff = null;
+
+                while ($row = $result->fetch_assoc()) {
+                    $staffKey = $row['staff_email'];
+                    $totalMinutes += $row['minutes_worked'];
+                    
+                    // Format hours worked
+                    $hours = floor($row['minutes_worked'] / 60);
+                    $minutes = $row['minutes_worked'] % 60;
+                    $hoursWorked = sprintf("%dh %02dm", $hours, $minutes);
+                    
+                    // Calculate pay for this shift
+                    $shiftPay = $hours * $row['pay_per_hour'] + ($minutes / 60) * $row['pay_per_hour'];
+                    
+                    // Determine status
+                    $status = 'Pending';
+                    if ($row['clockin'] && $row['clockout']) {
+                        $status = 'Completed';
+                    } elseif ($row['clockin']) {
+                        $status = 'In Progress';
+                    }
+                    
+                    $scheduleData = [
+                        'location' => $row['location_name'],
+                        'schedule_date' => date('D M jS', strtotime($row['schedule_date'])),
+                        'scheduled_time' => date('g:i A', strtotime($row['start_time'])) . ' - ' . date('g:i A', strtotime($row['end_time'])),
+                        'actual_time' => ($row['clockin'] ? date('g:i A', strtotime($row['clockin'])) : 'N/A') . ' - ' . 
+                                        ($row['clockout'] ? date('g:i A', strtotime($row['clockout'])) : 'N/A'),
+                        'shift_type' => $row['shift_type'],
+                        'pay_per_hour' => $row['pay_per_hour'],
+                        'overnight_type' => $row['overnight_type'],
+                        'hours_worked' => $hoursWorked,
+                        'minutes_worked' => $row['minutes_worked'],
+                        'pay' => number_format($shiftPay, 2),
+                        'status' => $status
+                    ];
+
+                    // Initialize staff entry if not exists
+                    if (!isset($staffSchedules[$staffKey])) {
+                        $staffSchedules[$staffKey] = [
+                            'name' => $row['firstname'] . ' ' . $row['lastname'],
+                            'email' => $row['staff_email'],
+                            'schedules' => [],
+                            'total_hours' => 0,
+                            'total_minutes' => 0,
+                            'total_pay' => 0
+                        ];
+                    }
+
+                    // Add schedule to staff
+                    $staffSchedules[$staffKey]['schedules'][] = $scheduleData;
+                    $staffSchedules[$staffKey]['total_minutes'] += $row['minutes_worked'];
+                    $staffSchedules[$staffKey]['total_pay'] += $shiftPay;
+                }
+
+                // Calculate total hours for each staff
+                foreach ($staffSchedules as $key => $staff) {
+                    $totalHours = floor($staff['total_minutes'] / 60);
+                    $totalMinutesRemainder = $staff['total_minutes'] % 60;
+                    $staffSchedules[$key]['total_hours'] = sprintf("%dh %02dm", $totalHours, $totalMinutesRemainder);
+                    $staffSchedules[$key]['total_pay'] = number_format($staff['total_pay'], 2);
+                }
+
+                // Convert to indexed array for JSON
+                $groupedSchedules = array_values($staffSchedules);
+
+                // Format total hours
+                $totalHours = floor($totalMinutes / 60);
+                $totalMinutesRemainder = $totalMinutes % 60;
+                $totalHoursFormatted = sprintf("%dh %02dm", $totalHours, $totalMinutesRemainder);
+
+                // Return JSON response
+                echo json_encode([
+                    'success' => true,
+                    'data' => $groupedSchedules,
+                    'generated_by' => $session_mail ?? 'Admin',
+                    'pagination' => [
+                        'totalRecords' => $totalRecords,
+                        'totalPages' => $totalPages,
+                        'currentPage' => $page,
+                        'perPage' => $perPage
+                    ],
+                    'summary' => [
+                        'totalHours' => $totalHoursFormatted,
+                        'totalRecords' => $totalRecords
+                    ]
+                ]);
+
+                $stmt->close();
+                $this->db->close();
 
             } else {
                 echo json_encode(['status' => false, 'message' => 'Unauthorized access. Insufficient privileges.']);
                 return;
             }
-
         }
 
         public function fetchStaffsList() {
