@@ -1031,7 +1031,9 @@
                 unlink(UPLOAD_URL . $name);
             }
 
-            $stmt = $this->db->prepare("UPDATE $type SET name = '' WHERE id = ?");
+            $column = $type == 'certificates' ? 'certificate_name' : 'name';
+
+            $stmt = $this->db->prepare("UPDATE $type SET $column = '' WHERE id = ?");
             $stmt->bind_param("i", $id);
             $stmt->execute();
 
