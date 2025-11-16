@@ -365,80 +365,11 @@
 
                 const form = $('#scheduleSaveForm');
 
-                // Add validation rules
-                form.validate({
-                    ignore: [], // validate hidden inputs too
-                    rules: {
-                        // optional: add other field-specific rules
-                    },
-                    errorPlacement: function (error, element) {
-                        error.insertAfter(element);
-                    },
-                    highlight: function (element) {
-                        $(element).addClass('is-invalid');
-
-                        // 🔍 Find accordion and expand it
-                        const $accordionItem = $(element).closest('.accordion-item');
-                        const collapseId = $accordionItem.find('.accordion-collapse').attr('id');
-
-                        if (!$accordionItem.find('.accordion-collapse').hasClass('show')) {
-                            new bootstrap.Collapse(document.getElementById(collapseId), {
-                                toggle: true
-                            });
-                        }
-
-                        // 🔽 Scroll to the field
-                        $('html, body').animate({
-                            scrollTop: $(element).offset().top - 100
-                        }, 600);
-                    },
-                    unhighlight: function (element) {
-                        $(element).removeClass('is-invalid');
-                    },
-                    submitHandler: function (formElement) {
-                        let timeErrorFound = false;
-
-                        // Check all start_time and end_time inputs
-                        /*$(formElement).find('tr').each(function () {
-                            const $row = $(this);
-                            const $start = $row.find('input[type="time"][name^="start_time"]');
-                            const $end = $row.find('input[type="time"][name^="end_time"]');
-
-                            const startVal = $start.val();
-                            const endVal = $end.val();
-
-                            if (startVal && endVal) {
-                                const start = new Date(`1970-01-01T${startVal}`);
-                                const end = new Date(`1970-01-01T${endVal}`);
-
-                                if (end <= start) {
-                                    $end.addClass('is-invalid');
-
-                                    const $accordionItem = $row.closest('.accordion-item');
-                                    const collapseId = $accordionItem.find('.accordion-collapse').attr('id');
-
-                                    new bootstrap.Collapse(document.getElementById(collapseId), {
-                                        toggle: true
-                                    });
-
-                                    $('html, body').animate({
-                                        scrollTop: $end.offset().top - 100
-                                    }, 500);
-
-                                    timeErrorFound = true;
-                                }
-                            }
-                        });
-
-                        if (timeErrorFound) {
-                            iziToast.error({
-                                title: 'Validation Error',
-                                message: 'End time must be after start time.',
-                            });
-                            return;
-                        }*/
-
-                        const formData = $(formElement).serialize();
+                    // Remove validation and handle form submission directly
+                    form.off('submit').on('submit', function(e) {
+                        e.preventDefault();
+                        
+                        const formData = $(this).serialize();
 
                         // Confirmation prompt
                         iziToast.question({
@@ -508,8 +439,7 @@
                                 console.info('Closed | closedBy: ' + closedBy);
                             }
                         });
-                    }
-                });
+                    });
 
 
         </script>

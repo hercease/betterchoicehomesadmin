@@ -501,7 +501,7 @@
         $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
         date_default_timezone_set($timezone);
 
-        $scheduleId = $_POST['id'];
+        $scheduleId = $_POST['schedule_id'];
         $fetchschedule = $this->allmodels->fetchscheduledetails($scheduleId);
 
         $delete_details = $this->allmodels->deleteSchedule($scheduleId, $fetchschedule[0]['email']);
@@ -706,10 +706,10 @@
                                     <?php foreach ($users as $user): ?>
                                         <tr class="align-item-center">
                                             <td><?= htmlspecialchars($user['firstname'] . ' ' . $user['lastname']) ?></td>
-                                            <td><input type="time" class="form-control border-0 shadow" required name="start_time[<?= $user['id'] ?>][<?= $date ?>]"></td>
-                                            <td><input type="time" class="form-control border-0 shadow" required name="end_time[<?= $user['id'] ?>][<?= $date ?>]"></td>
+                                            <td><input type="time" class="form-control border-0 shadow"  name="start_time[<?= $user['id'] ?>][<?= $date ?>]"></td>
+                                            <td><input type="time" class="form-control border-0 shadow" name="end_time[<?= $user['id'] ?>][<?= $date ?>]"></td>
                                             <td>
-                                                <select class="form-select border-0 shadow shift_type" required name="shift_type[<?= $user['id'] ?>][<?= $date ?>]">
+                                                <select class="form-select border-0 shadow shift_type" name="shift_type[<?= $user['id'] ?>][<?= $date ?>]">
                                                     <option value="day">Day</option>
                                                     <option value="evening">Evening</option>
                                                     <option value="overnight">Over Night</option>
@@ -726,7 +726,7 @@
                                             <input type="hidden" name="email[<?= $user['id'] ?>][<?= $date ?>]" value="<?= $user['email'] ?>" />
                                             <input type="hidden" name="location_id[<?= $user['id'] ?>][<?= $date ?>]" value="<?= $locationid ?>" />
                                             <input type="hidden" name="location[<?= $user['id'] ?>][<?= $date ?>]" value="<?= $location ?>" />
-                                            <td><input type="number" class="form-control border-0 shadow" required name="pay[<?= $user['id'] ?>][<?= $date ?>]" placeholder="Pay per hour CAD/hr"></td>
+                                            <td><input type="number" class="form-control border-0 shadow" name="pay[<?= $user['id'] ?>][<?= $date ?>]" placeholder="Pay per hour CAD/hr"></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
@@ -765,88 +765,116 @@
             date_default_timezone_set($timezone);
 
             $userInfo = $this->allmodels->getUserInfo($_SESSION['better_email']);
-
             $user_role = $userInfo['role'];
-        
-            try {
 
+            try {
                 if($userInfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'create.schedule')){
 
-                $startTimes  = $this->allmodels->sanitizeInput($_POST['start_time'] ?? []);
-                $endTimes    = $this->allmodels->sanitizeInput($_POST['end_time'] ?? []);
-                $shiftTypes  = $this->allmodels->sanitizeInput($_POST['shift_type'] ?? []);
-                $pays        = $this->allmodels->sanitizeInput($_POST['pay'] ?? []);
-                $email       = $this->allmodels->sanitizeInput($_POST['email'] ?? []);
-                $location_id    = $this->allmodels->sanitizeInput($_POST['location_id'] ?? []);
-                $location    = $this->allmodels->sanitizeInput($_POST['location'] ?? []);
-                $overnight_type    = $this->allmodels->sanitizeInput($_POST['overnight_type'] ?? []);
+                    $startTimes  = $this->allmodels->sanitizeInput($_POST['start_time'] ?? []);
+                    $endTimes    = $this->allmodels->sanitizeInput($_POST['end_time'] ?? []);
+                    $shiftTypes  = $this->allmodels->sanitizeInput($_POST['shift_type'] ?? []);
+                    $pays        = $this->allmodels->sanitizeInput($_POST['pay'] ?? []);
+                    $email       = $this->allmodels->sanitizeInput($_POST['email'] ?? []);
+                    $location_id = $this->allmodels->sanitizeInput($_POST['location_id'] ?? []);
+                    $location    = $this->allmodels->sanitizeInput($_POST['location'] ?? []);
+                    $overnight_type = $this->allmodels->sanitizeInput($_POST['overnight_type'] ?? []);
 
-                if (empty($startTimes)) {
-                    echo json_encode(['status' => false, 'message' => 'No schedule data submitted']);
-                    return;
-                }
+                    if (empty($startTimes)) {
+                        echo json_encode(['status' => false, 'message' => 'No schedule data submitted']);
+                        return;
+                    }
 
-                // Begin transaction
-                $this->db->begin_transaction();
+                    // Begin transaction
+                    $this->db->begin_transaction();
 
-                $stmt = $this->db->prepare("
-                    INSERT INTO scheduling (user_id, email, location_name, location_id, schedule_date, start_time, end_time, shift_type, overnight_type, pay_per_hour)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    ON DUPLICATE KEY UPDATE
-                    start_time = VALUES(start_time),
-                    end_time = VALUES(end_time),
-                    shift_type = VALUES(shift_type),
-                    overnight_type = VALUES(overnight_type),
-                    pay_per_hour = VALUES(pay_per_hour)
-                ");
+                    $stmt = $this->db->prepare("
+                        INSERT INTO scheduling (user_id, email, location_name, location_id, schedule_date, start_time, end_time, shift_type, overnight_type, pay_per_hour)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ON DUPLICATE KEY UPDATE
+                        start_time = VALUES(start_time),
+                        end_time = VALUES(end_time),
+                        shift_type = VALUES(shift_type),
+                        overnight_type = VALUES(overnight_type),
+                        pay_per_hour = VALUES(pay_per_hour)
+                    ");
 
-                if (!$stmt) {
-                    throw new Exception("Prepare failed: " . $this->db->error);
-                }
+                    if (!$stmt) {
+                        throw new Exception("Prepare failed: " . $this->db->error);
+                    }
 
-                foreach ($startTimes as $userId => $dates) {
-                    foreach ($dates as $date => $startTime) {
+                    $schedulesProcessed = 0;
+                    $schedulesSkipped = 0;
 
-                        $endTime    = $endTimes[$userId][$date] ?? null;
-                        $shiftType  = $shiftTypes[$userId][$date] ?? '';
-                        $payPerHour = $pays[$userId][$date] ?? 0;
-                        $useremail = $email[$userId][$date] ?? '';
-                        $locations = $location[$userId][$date] ?? '';
-                        $locationid = $location_id[$userId][$date] ?? '';
-                        $overnightType  = $overnight_type[$userId][$date] ?? 'rest';
+                    foreach ($startTimes as $userId => $dates) {
+                        foreach ($dates as $date => $startTime) {
+                            $endTime    = $endTimes[$userId][$date] ?? null;
+                            $shiftType  = $shiftTypes[$userId][$date] ?? '';
+                            $payPerHour = $pays[$userId][$date] ?? 0;
+                            $useremail = $email[$userId][$date] ?? '';
+                            $locations = $location[$userId][$date] ?? '';
+                            $locationid = $location_id[$userId][$date] ?? '';
+                            $overnightType  = $overnight_type[$userId][$date] ?? 'rest';
 
-                        // Skip empty rows
-                        if (empty($startTime) || empty($endTime) || empty($shiftType) || empty($payPerHour)) {
-                            throw new Exception("All fields are required");
-                        }
+                            // Skip incomplete schedules - all three fields must be filled
+                            if (empty(trim($startTime)) || empty(trim($endTime)) || empty(trim($payPerHour))) {
+                                $schedulesSkipped++;
+                                continue; // Skip this schedule and move to the next one
+                            }
 
-                        $stmt->bind_param("ississsssd", $userId, $useremail, $locations, $locationid, $date, $startTime, $endTime, $shiftType, $overnightType, $payPerHour);
-                        if (!$stmt->execute()) {
-                            throw new Exception("Execution failed: " . $stmt->error);
+                            // If we reach here, all required fields are filled
+                            $stmt->bind_param("ississsssd", $userId, $useremail, $locations, $locationid, $date, $startTime, $endTime, $shiftType, $overnightType, $payPerHour);
+                            if (!$stmt->execute()) {
+                                throw new Exception("Execution failed: " . $stmt->error);
+                            }
+                            
+                            $schedulesProcessed++;
                         }
                     }
-                }
 
-                $stmt->close();
+                    $stmt->close();
 
-                $dates = array_keys(reset($startTimes));
-                $dateRange = min($dates) . " to " . max($dates);
-                $logmessage =  "Insert schedule form for location: " . $locations . " and date range: " . $dateRange;
+                    // Check if any valid schedules were processed
+                    if ($schedulesProcessed === 0) {
+                        throw new Exception("No complete schedule data found. Please fill in start time, end time, and pay for at least one schedule.");
+                    }
 
-                $this->allmodels->logActivity($_SESSION['better_email'], $_SESSION['userid'], 'insert-schedule', $logmessage,  date('Y-m-d H:i:s'));
+                    // Get date range for logging (only from processed schedules)
+                    $dates = [];
+                    foreach ($startTimes as $userId => $dateArray) {
+                        foreach ($dateArray as $date => $startTime) {
+                            $endTime = $endTimes[$userId][$date] ?? null;
+                            $payPerHour = $pays[$userId][$date] ?? 0;
+                            
+                            // Only include dates from complete schedules
+                            if (!empty(trim($startTime)) && !empty(trim($endTime)) && !empty(trim($payPerHour))) {
+                                $dates[] = $date;
+                            }
+                        }
+                    }
 
+                    if (!empty($dates)) {
+                        $dateRange = min($dates) . " to " . max($dates);
+                        $logmessage = "Insert schedule form for location: " . ($location[$userId][$date] ?? 'unknown') . " and date range: " . $dateRange;
+                        $this->allmodels->logActivity($_SESSION['better_email'], $_SESSION['userid'], 'insert-schedule', $logmessage, date('Y-m-d H:i:s'));
+                    }
 
-                $this->db->commit();
+                    $this->db->commit();
 
-                echo json_encode([
-                    'status' => true,
-                    'message' => 'Schedule saved successfully'
-                ]);
+                    $message = 'Schedule saved successfully';
+                    if ($schedulesSkipped > 0) {
+                        $message .= ". {$schedulesSkipped} incomplete schedule(s) were skipped.";
+                    }
+
+                    echo json_encode([
+                        'status' => true,
+                        'message' => $message,
+                        'processed' => $schedulesProcessed,
+                        'skipped' => $schedulesSkipped
+                    ]);
 
                 } else {
                     throw new Exception("Unauthorized access. Insufficient privileges.");
                 }
-            
 
             } catch (Exception $e) {
                 $this->db->rollback();
