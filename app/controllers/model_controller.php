@@ -726,7 +726,7 @@
                                             <input type="hidden" name="email[<?= $user['id'] ?>][<?= $date ?>]" value="<?= $user['email'] ?>" />
                                             <input type="hidden" name="location_id[<?= $user['id'] ?>][<?= $date ?>]" value="<?= $locationid ?>" />
                                             <input type="hidden" name="location[<?= $user['id'] ?>][<?= $date ?>]" value="<?= $location ?>" />
-                                            <td><input type="number" class="form-control border-0 shadow" required name="pay[<?= $user['id'] ?>][<?= $date ?>]" placeholder="Pay per hour ₦/hr"></td>
+                                            <td><input type="number" class="form-control border-0 shadow" required name="pay[<?= $user['id'] ?>][<?= $date ?>]" placeholder="Pay per hour CAD/hr"></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>
