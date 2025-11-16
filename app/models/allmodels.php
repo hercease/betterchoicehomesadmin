@@ -831,8 +831,6 @@ class allmodels{
                         ";
                     }
 
-                // Generate action buttons
-                $action = buildCertificateActions($row);
 
                 $data[] = [
                     "id"            => ++$i,
@@ -840,7 +838,7 @@ class allmodels{
                     "name"          => $row['certificate_name'],
                     "status"        => $status,
                     "uploaded_date" => date('Y-m-d', strtotime($row['created_on'])),
-                    "action"        => $action,
+                    "action"        => buildCertificateActions($row),
                 ];
             }
         }
