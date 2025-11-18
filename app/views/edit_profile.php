@@ -445,7 +445,7 @@
                                                     progressBarColor: 'rgb(0, 255, 184)',
                                                     buttons: [
                                                         ['<button>View Profile</button>', function () {
-                                                            window.location.href = "profile";
+                                                            window.location.href = "profile_details";
                                                         }],
                                                         ['<button>Close</button>', function (instance, toast) {
                                                             instance.hide({ transitionOut: 'fadeOutUp' }, toast, 'button');
