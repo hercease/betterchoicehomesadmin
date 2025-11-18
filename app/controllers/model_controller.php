@@ -2235,6 +2235,41 @@
                 }
             }
 
+            // Check cumulative file size before processing
+            $totalSize = 0;
+            $maxTotalSize = 40 * 1024 * 1024; // 40MB in bytes
+            $documentFilesCount = 0;
+            $certificateFilesCount = 0;
+            
+            // Calculate total size of document files
+            if (isset($_FILES['document_files']['size'])) {
+                foreach ($_FILES['document_files']['size'] as $size) {
+                    if ($size > 0) {
+                        $totalSize += $size;
+                        $documentFilesCount++;
+                    }
+                }
+            }
+            
+            // Calculate total size of certificate files
+            if (isset($_FILES['certificate_files']['size'])) {
+                foreach ($_FILES['certificate_files']['size'] as $size) {
+                    if ($size > 0) {
+                        $totalSize += $size;
+                        $certificateFilesCount++;
+                    }
+                }
+            }
+            
+            // Check if total size exceeds 40MB
+            if ($totalSize > $maxTotalSize) {
+                $totalSizeMB = round($totalSize / (1024 * 1024), 2);
+                throw new Exception("Total file size ({$totalSizeMB}MB) exceeds the 40MB limit. Please reduce the file sizes and try again.");
+            }
+
+            // Optional: Log the file size information for debugging
+            //error_log("File upload - Documents: {$documentFilesCount}, Certificates: {$certificateFilesCount}, Total size: " . round($totalSize / (1024 * 1024), 2) . "MB");
+
             $this->db->begin_transaction();
 
             $user_id = intval($userinfo['id']);
@@ -2275,7 +2310,7 @@
                     $stmt->close();
 
                 }
-               
+            
             }
 
             foreach ($certtags as $certtag) {
@@ -2308,10 +2343,8 @@
                     $stmt->close();
 
                 }
-               
+            
             }
-
-            //error_log("I got here");
 
             $date = date("Y-m-d H:i:s");
 
@@ -2319,7 +2352,7 @@
 
             $this->db->commit();
 
-             echo json_encode([
+            echo json_encode([
                 'status' => true,
                 'message' => 'Profile updated successfully'
             ]);
