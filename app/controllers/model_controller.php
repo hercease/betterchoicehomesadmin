@@ -201,6 +201,25 @@
             echo json_encode($response);
         }
 
+        public function fetchAllAgenciesData() {
+            session_start();
+            // Fetch data for DataTables
+            $start = isset($_POST['start']) ? intval($_POST['start']) : 0;
+            $draw = isset($_POST['draw']) ? intval($_POST['draw']) : 1;
+            $rowperpage = isset($_POST['length']) ? intval($_POST['length']) : 10;
+            $searchValue = $this->allmodels->sanitizeInput($_POST['search']['value']); // Search value
+            
+            $data = $this->allmodels->fetchTableRows($start,$rowperpage,$searchValue,"allagencies");
+            $response = array(
+                    "draw" => intval($draw),
+                    "recordsTotal" => $data['recordsTotal'],
+                    "recordsFiltered" => $data['totalRecordsWithFilter'],
+                    "data" => $data['data']
+            );
+
+            echo json_encode($response);
+        }
+
         public function fetchAllScheduleData() {
             session_start();
             // Fetch data for DataTables
@@ -254,7 +273,26 @@
             );
 
             echo json_encode($response);
-        } 
+        }
+
+        public function fetchAllAgenciesStaffData() {
+            session_start();
+            // Fetch data for DataTables
+            $start = isset($_POST['start']) ? intval($_POST['start']) : 0;
+            $draw = isset($_POST['draw']) ? intval($_POST['draw']) : 1;
+            $rowperpage = isset($_POST['length']) ? intval($_POST['length']) : 10;
+            $searchValue = $this->allmodels->sanitizeInput($_POST['search']['value']); // Search value
+            
+            $data = $this->allmodels->fetchTableRows($start,$rowperpage,$searchValue,"allagencystaffs");
+            $response = array(
+                    "draw" => intval($draw),
+                    "recordsTotal" => $data['recordsTotal'],
+                    "recordsFiltered" => $data['totalRecordsWithFilter'],
+                    "data" => $data['data']
+            );
+
+            echo json_encode($response);
+        }
 
         public function getCoordinates(){
             $address = $this->allmodels->sanitizeInput($_POST['address']);
@@ -918,7 +956,7 @@
                 //error_log(print_r($_POST, true));
 
                 $email = $_POST['email'];
-                $overnight_type = $_POST['overnight_type'];
+                $overnight_type = $_POST['overnight_type'] ?? '';
 
                 $stmt = $this->db->prepare("UPDATE scheduling SET start_time = ?, end_time = ?, shift_type = ?, pay_per_hour = ?, overnight_type = ? WHERE id = ?");
                 $stmt->bind_param("sssssi", $input['start_time'], $input['end_time'], $input['shift_type'], $input['pay_per_hour'], $overnight_type, $input['id']);
@@ -1696,505 +1734,133 @@
         }
 
        public function scheduleTesting(){
-            $action = $_POST['action'] ?? ($_POST['action'] ?? '');
+            $action = $_POST['action'] ?? '';
 
             try {
-                if ($action === 'month') {
-                    $month = $_POST['month'] ?? date('Y-m');
-                    // Count schedules by date
-                    $sql = "
-                    SELECT DATE(schedule_date) AS d, COUNT(*) AS cnt
-                    FROM scheduling
-                    WHERE DATE_FORMAT(schedule_date, '%Y-%m') = ?
-                    GROUP BY DATE(schedule_date)
-                    ORDER BY d
-                    ";
-                    $stmt = $this->db->prepare($sql);
-                    $stmt->bind_param('s', $month);
-                    $stmt->execute();
-                    $res = $stmt->get_result();
-
-                    $marked = [];
-                    while ($r = $res->fetch_assoc()) {
-                        $d = $r['d'];
-                        $marked[$d] = ['count' => (int)$r['cnt']];
-                    }
-
-                    echo json_encode([
-                        'status' => true,
-                        'marked_dates' => $marked
-                    ]);
-                }
-                elseif ($action === 'day') {
-                    $date = $_POST['date'] ?? date('Y-m-d');
-                    $name = trim($_POST['name'] ?? '');
+                if ($action === 'spreadsheet') {
+                    $startDate = $_POST['start_date'] ?? date('Y-m-d');
+                    $endDate = $_POST['end_date'] ?? date('Y-m-d', strtotime('+6 days'));
                     $location = trim($_POST['location'] ?? '');
-                    $status = $_POST['status'] ?? '';
-
-                    // Build filter conditions
-                    $conds = ["DATE(schedule_date) = ?"];
-                    $bind  = [$date];
-                    $types = "s";
-
-                    if ($name !== '') {
-                        $conds[] = "(u.firstname LIKE CONCAT('%', ?, '%') OR u.lastname LIKE CONCAT('%', ?, '%'))";
-                        $bind[] = $name; $bind[] = $name;
-                        $types .= "ss";
-                    }
-                    if ($location !== '') {
-                        $conds[] = "(s.location_name LIKE CONCAT('%', ?, '%'))";
-                        $bind[] = $location;
-                        $types .= "s";
-                    }
-
-                    // Status filter (completed/in-progress/pending)
-                    if (!empty($status)) {
-                        if ($status === 'completed') {
-                            $conds[] = "(s.clockin IS NOT NULL AND s.clockout IS NOT NULL)";
-                        } elseif ($status === 'in-progress') {
-                            $conds[] = "(s.clockin IS NOT NULL AND s.clockout IS NULL)";
-                        } elseif ($status === 'scheduled') {
-                            $conds[] = "(s.clockin IS NULL)";
-                        }
-                    }
-
-                    // Calculate cross-midnight safely by adding a day if end <= start
-                    $sql = "
-                    SELECT
-                        s.id,
-                        s.email,
-                        CONCAT(u.firstname, ' ', u.lastname) AS staff_name,
-                        s.location_name AS location,
-                        s.schedule_date AS date,
-
-                        s.start_time,
-                        s.end_time,
-                        s.clockin,
-                        s.clockout,
-                        s.pay_per_hour,
-                        s.shift_type,
-                        s.overnight_type,
-
-                        -- Pretty formats
-                        DATE_FORMAT(s.start_time, '%h:%i %p') AS start_time_fmt,
-                        DATE_FORMAT(s.end_time,   '%h:%i %p') AS end_time_fmt,
-                        IFNULL(DATE_FORMAT(s.clockin, '%h:%i %p'), NULL)  AS clockin_fmt,
-                        IFNULL(DATE_FORMAT(s.clockout, '%h:%i %p'), NULL) AS clockout_fmt,
-
-                        -- scheduled hours (decimal)
-                        (
-                        CASE
-                            WHEN TIME(s.end_time) <= TIME(s.start_time)
-                            THEN TIMESTAMPDIFF(SECOND, s.start_time, DATE_ADD(s.end_time, INTERVAL 1 DAY)) / 3600
-                            ELSE TIMESTAMPDIFF(SECOND, s.start_time, s.end_time) / 3600
-                        END
-                        ) AS scheduled_hours,
-
-                        -- hours worked (decimal) — only if both exist
-                        (
-                        CASE
-                            WHEN s.clockin IS NOT NULL AND s.clockout IS NOT NULL THEN
-                            CASE
-                                WHEN TIME(s.clockout) <= TIME(s.clockin)
-                                THEN TIMESTAMPDIFF(SECOND, s.clockin, DATE_ADD(s.clockout, INTERVAL 1 DAY)) / 3600
-                                ELSE TIMESTAMPDIFF(SECOND, s.clockin, s.clockout) / 3600
-                            END
-                            ELSE 0
-                        END
-                        ) AS hours_worked
-                    FROM scheduling s
-                    LEFT JOIN users u ON u.email = s.email
-                    WHERE " . implode(' AND ', $conds) . "
-                    ORDER BY s.start_time ASC
-                    ";
-
-                    $stmt = $this->db->prepare($sql);
-                    $stmt->bind_param($types, ...$bind);
-                    $stmt->execute();
-                    $res = $stmt->get_result();
-
-                    $rows = [];
-                    while ($r = $res->fetch_assoc()) {
-                        // Normalize numeric precision (2 dp)
-                        $status = 'scheduled';
-                        if ($r['clockin'] && $r['clockout']) {
-                            $status = 'completed';
-                        } elseif ($r['clockin']) {
-                            $status = 'in-progress';
-                        }
-                        $r['pay_per_hour']   = isset($r['pay_per_hour']) ? number_format((float)$r['pay_per_hour'], 2, '.', '') : '0.00';
-                        $r['scheduled_hours']= number_format((float)$r['scheduled_hours'], 2, '.', '');
-                        $r['hours_worked']   = number_format((float)$r['hours_worked'], 2, '.', '');
-                        $r['status'] = $status;
-                        $rows[] = $r;
-                    }
-
-                    echo json_encode([
-                        'status' => true,
-                        'data' => $rows
-                    ]);
-                }
-                elseif ($action === 'spreadsheet') {
-                    $page = max(1, (int)($_POST['page'] ?? 1));
-                    $limit = max(1, (int)($_POST['limit'] ?? 50));
-                    $offset = ($page - 1) * $limit;
                     
-                    $name = trim($_POST['name'] ?? '');
-                    $location = trim($_POST['location'] ?? '');
-                    $status = $_POST['status'] ?? '';
-                    $date = $_POST['date'] ?? '';
-
                     // Build filter conditions
-                    $conds = ["1=1"];
-                    $bind = [];
-                    $types = "";
+                    $conds = ["DATE(s.schedule_date) BETWEEN ? AND ?"];
+                    $bind = [$startDate, $endDate];
+                    $types = "ss";
 
-                    if ($name !== '') {
-                        $conds[] = "(u.firstname LIKE CONCAT('%', ?, '%') OR u.lastname LIKE CONCAT('%', ?, '%'))";
-                        $bind[] = $name; $bind[] = $name;
-                        $types .= "ss";
-                    }
-                    if ($location !== '') {
+                    if (!empty($location)) {
                         $conds[] = "s.location_id = ?";
                         $bind[] = $location;
                         $types .= "s";
                     }
-                    if ($date !== '') {
-                        $conds[] = "DATE(s.schedule_date) = ?";
-                        $bind[] = $date;
-                        $types .= "s";
-                    }
 
-                    // Status filter
-                    if (!empty($status)) {
-                        if ($status === 'completed') {
-                            $conds[] = "(s.clockin IS NOT NULL AND s.clockout IS NOT NULL)";
-                        } elseif ($status === 'in-progress') {
-                            $conds[] = "(s.clockin IS NOT NULL AND s.clockout IS NULL)";
-                        } elseif ($status === 'scheduled') {
-                            $conds[] = "(s.clockin IS NULL)";
-                        }
-                    }
-
-                    // Count total records for pagination
-                    $countSql = "SELECT COUNT(*) as total FROM scheduling s 
-                                LEFT JOIN users u ON u.email = s.email 
-                                WHERE " . implode(' AND ', $conds);
-                    
-                    $countStmt = $this->db->prepare($countSql);
-                    if (!empty($bind)) {
-                        $countStmt->bind_param($types, ...$bind);
-                    }
-                    $countStmt->execute();
-                    $countResult = $countStmt->get_result();
-                    $totalRecords = $countResult->fetch_assoc()['total'];
-
-                    // Main query for schedules
+                    // Main query for spreadsheet data
                     $sql = "
                     SELECT
                         s.id,
-                        s.email,
                         CONCAT(u.firstname, ' ', u.lastname) AS staff_name,
+                        s.email,
                         l.address AS location,
-                        s.schedule_date AS date,
-
+                        DATE(s.schedule_date) AS schedule_date,
                         s.start_time,
                         s.end_time,
                         s.clockin,
                         s.clockout,
-                        s.pay_per_hour,
-                        s.shift_type,
-                        s.overnight_type,
-
-                        -- Pretty formats
+                        
+                        -- Pretty time formats
                         DATE_FORMAT(s.start_time, '%h:%i %p') AS start_time_fmt,
-                        DATE_FORMAT(s.end_time,   '%h:%i %p') AS end_time_fmt,
-                        IFNULL(DATE_FORMAT(s.clockin, '%h:%i %p'), NULL)  AS clockin_fmt,
-                        IFNULL(DATE_FORMAT(s.clockout, '%h:%i %p'), NULL) AS clockout_fmt,
-
-                        -- scheduled hours (decimal)
-                        (
-                        CASE
-                            WHEN TIME(s.end_time) <= TIME(s.start_time)
-                            THEN TIMESTAMPDIFF(SECOND, s.start_time, DATE_ADD(s.end_time, INTERVAL 1 DAY)) / 3600
-                            ELSE TIMESTAMPDIFF(SECOND, s.start_time, s.end_time) / 3600
-                        END
-                        ) AS scheduled_hours,
-
-                        -- hours worked (decimal) — only if both exist
-                        (
-                        CASE
-                            WHEN s.clockin IS NOT NULL AND s.clockout IS NOT NULL THEN
-                            CASE
-                                WHEN TIME(s.clockout) <= TIME(s.clockin)
-                                THEN TIMESTAMPDIFF(SECOND, s.clockin, DATE_ADD(s.clockout, INTERVAL 1 DAY)) / 3600
-                                ELSE TIMESTAMPDIFF(SECOND, s.clockin, s.clockout) / 3600
-                            END
-                            ELSE 0
-                        END
-                        ) AS hours_worked
+                        DATE_FORMAT(s.end_time, '%h:%i %p') AS end_time_fmt,
+                        IFNULL(DATE_FORMAT(s.clockin, '%h:%i %p'), 'Not clocked in') AS clockin_fmt,
+                        IFNULL(DATE_FORMAT(s.clockout, '%h:%i %p'), 'Not clocked out') AS clockout_fmt
+                        
                     FROM scheduling s
                     LEFT JOIN users u ON u.email = s.email
                     LEFT JOIN locations l ON s.location_id = l.id
                     WHERE " . implode(' AND ', $conds) . "
-                    ORDER BY s.schedule_date DESC, s.start_time ASC
-                    LIMIT ? OFFSET ?
+                    ORDER BY l.address, s.schedule_date, s.start_time
                     ";
-
-                    // Add limit and offset to bind parameters
-                    $bind[] = $limit;
-                    $bind[] = $offset;
-                    $types .= "ii";
 
                     $stmt = $this->db->prepare($sql);
                     $stmt->bind_param($types, ...$bind);
                     $stmt->execute();
                     $res = $stmt->get_result();
 
-                    $rows = [];
-                    while ($r = $res->fetch_assoc()) {
+                    // Organize data for spreadsheet format
+                    $spreadsheetData = [
+                        'dates' => [],
+                        'locations' => [],
+                        'schedule_data' => []
+                    ];
+
+                    // Generate date range
+                    $currentDate = $startDate;
+                    while ($currentDate <= $endDate) {
+                        $spreadsheetData['dates'][] = [
+                            'date' => $currentDate,
+                            'day' => date('D', strtotime($currentDate)),
+                            'display' => date('M j', strtotime($currentDate))
+                        ];
+                        $currentDate = date('Y-m-d', strtotime($currentDate . ' +1 day'));
+                    }
+
+                    $schedules = [];
+                    while ($row = $res->fetch_assoc()) {
                         // Determine status
                         $status = 'scheduled';
-                        if ($r['clockin'] && $r['clockout']) {
+                        if ($row['clockin'] && $row['clockout']) {
                             $status = 'completed';
-                        } elseif ($r['clockin']) {
-                            $status = 'in-progress';
-                        } elseif(!$r['clockin'] && !$r['clockout'] && date('Y-m-d') > $r['date']){
+                        } elseif ($row['clockin']) {
+                            $status = 'ongoing';
+                        } elseif (!$row['clockin'] && date('Y-m-d') > $row['schedule_date']) {
                             $status = 'missed';
                         }
+
+                        $scheduleItem = [
+                            'id' => $row['id'],
+                            'staff_name' => $row['staff_name'],
+                            'email' => $row['email'],
+                            'location' => $row['location'],
+                            'date' => $row['schedule_date'],
+                            'start_time' => $row['start_time_fmt'],
+                            'end_time' => $row['end_time_fmt'],
+                            'clockin' => $row['clockin_fmt'],
+                            'clockout' => $row['clockout_fmt'],
+                            'status' => $status
+                        ];
+
+                        $schedules[] = $scheduleItem;
                         
-                        // Normalize numeric precision (2 dp)
-                        $r['pay_per_hour'] = isset($r['pay_per_hour']) ? number_format((float)$r['pay_per_hour'], 2, '.', '') : '0.00';
-                        $r['scheduled_hours'] = number_format((float)$r['scheduled_hours'], 2, '.', '');
-                        $r['hours_worked'] = number_format((float)$r['hours_worked'], 2, '.', '');
-                        $r['status'] = $status;
-                        $rows[] = $r;
+                        // Track unique locations
+                        if (!in_array($row['location'], $spreadsheetData['locations'])) {
+                            $spreadsheetData['locations'][] = $row['location'];
+                        }
+                    }
+
+                    // Organize data by location and date for easy frontend consumption
+                    foreach ($spreadsheetData['locations'] as $location) {
+                        $locationData = [];
+                        
+                        foreach ($spreadsheetData['dates'] as $dateInfo) {
+                            $dateSchedules = array_filter($schedules, function($schedule) use ($location, $dateInfo) {
+                                return $schedule['location'] === $location && 
+                                    $schedule['date'] === $dateInfo['date'];
+                            });
+                            
+                            $locationData[$dateInfo['date']] = array_values($dateSchedules);
+                        }
+                        
+                        $spreadsheetData['schedule_data'][$location] = $locationData;
                     }
 
                     echo json_encode([
                         'status' => true,
-                        'data' => [
-                            'schedules' => $rows,
-                            'total' => $totalRecords,
-                            'page' => $page,
-                            'limit' => $limit,
-                            'total_pages' => ceil($totalRecords / $limit)
+                        'data' => $spreadsheetData,
+                        'date_range' => [
+                            'start_date' => $startDate,
+                            'end_date' => $endDate
                         ]
                     ]);
-                }
-                elseif ($action === 'datatable') {
-                    // DataTables server-side processing parameters
-                    $start = $_POST['start'] ?? 0;
-                    $length = $_POST['length'] ?? 25;
-                    $searchValue = $_POST['search']['value'] ?? '';
-                    $draw = intval($_POST['draw'] ?? 1);
-                    
-                    // Custom filters from our form
-                    $date = $_POST['date'] ?? '';
-                    $name = trim($_POST['name'] ?? '');
-                    $location = $_POST['location'] ?? '';
-                    $status = $_POST['status'] ?? '';
 
-                    // Build base conditions
-                    $conds = ["1=1"];
-                    $bind = [];
-                    $types = "";
-
-                    // Apply custom filters
-                    if ($date !== '') {
-                        $conds[] = "DATE(s.schedule_date) = ?";
-                        $bind[] = $date;
-                        $types .= "s";
-                    }
-                    if ($name !== '') {
-                        $conds[] = "(u.firstname LIKE CONCAT('%', ?, '%') OR u.lastname LIKE CONCAT('%', ?, '%'))";
-                        $bind[] = $name; $bind[] = $name;
-                        $types .= "ss";
-                    }
-                    if ($location !== '') {
-                        $conds[] = "s.location_id = ?";
-                        $bind[] = $location;
-                        $types .= "s";
-                    }
-
-                    // Status filter
-                    if (!empty($status)) {
-                        if ($status === 'completed') {
-                            $conds[] = "(s.clockin IS NOT NULL AND s.clockout IS NOT NULL)";
-                        } elseif ($status === 'in-progress') {
-                            $conds[] = "(s.clockin IS NOT NULL AND s.clockout IS NULL)";
-                        } elseif ($status === 'scheduled') {
-                            $conds[] = "(s.clockin IS NULL)";
-                        }
-                    }
-
-                    // Global search
-                    $searchCond = "";
-                    if (!empty($searchValue)) {
-                        $searchCond = " AND (u.firstname LIKE CONCAT('%', ?, '%') OR u.lastname LIKE CONCAT('%', ?, '%') OR l.address LIKE CONCAT('%', ?, '%') OR s.shift_type LIKE CONCAT('%', ?, '%'))";
-                        $bind[] = $searchValue; $bind[] = $searchValue; $bind[] = $searchValue; $bind[] = $searchValue;
-                        $types .= "ssss";
-                    }
-
-                    // Count total records
-                    $countSql = "SELECT COUNT(*) as total FROM scheduling s 
-                                LEFT JOIN users u ON u.email = s.email 
-                                LEFT JOIN locations l ON s.location_id = l.id
-                                WHERE " . implode(' AND ', $conds);
-                    
-                    $countStmt = $this->db->prepare($countSql);
-                    if (!empty($bind)) {
-                        $countStmt->bind_param($types, ...$bind);
-                    }
-                    $countStmt->execute();
-                    $countResult = $countStmt->get_result();
-                    $totalRecords = $countResult->fetch_assoc()['total'];
-
-                    // Count filtered records (with search)
-                    $filteredCountSql = "SELECT COUNT(*) as total FROM scheduling s 
-                                    LEFT JOIN users u ON u.email = s.email 
-                                    LEFT JOIN locations l ON s.location_id = l.id
-                                    WHERE " . implode(' AND ', $conds) . $searchCond;
-                    
-                    $filteredStmt = $this->db->prepare($filteredCountSql);
-                    if (!empty($bind)) {
-                        $filteredStmt->bind_param($types, ...$bind);
-                    }
-                    $filteredStmt->execute();
-                    $filteredResult = $filteredStmt->get_result();
-                    $filteredRecords = $filteredResult->fetch_assoc()['total'];
-
-                    // Main query with pagination and ordering
-                    $orderColumn = $_POST['order'][0]['column'] ?? 0;
-                    $orderDir = $_POST['order'][0]['dir'] ?? 'desc';
-                    
-                    // Map DataTables column index to actual column names
-                    $columnMap = [
-                        0 => 's.schedule_date',  // Date
-                        1 => 'u.firstname',      // Staff Name
-                        2 => 'l.address',        // Location
-                        3 => 's.shift_type',     // Shift Type
-                        4 => 's.start_time',     // Start Time
-                        5 => 's.end_time',       // End Time
-                        6 => 'scheduled_hours',  // Scheduled Hours
-                        7 => 'hours_worked',     // Worked Hours
-                        8 => 's.pay_per_hour',   // Pay Rate
-                        9 => 'total_pay',        // Total Pay (calculated)
-                        10 => 's.clockin',       // Clock In
-                        11 => 's.clockout',      // Clock Out
-                        12 => 'status'           // Status
-                    ];
-                    
-                    $orderBy = isset($columnMap[$orderColumn]) ? $columnMap[$orderColumn] : 's.schedule_date';
-                    $orderBy .= " " . ($orderDir === 'asc' ? 'ASC' : 'DESC');
-
-                    $sql = "
-                    SELECT
-                        s.id,
-                        s.email,
-                        CONCAT(u.firstname, ' ', u.lastname) AS staff_name,
-                        l.address AS location,
-                        s.schedule_date AS date,
-
-                        s.start_time,
-                        s.end_time,
-                        s.clockin,
-                        s.clockout,
-                        s.pay_per_hour,
-                        s.shift_type,
-                        s.overnight_type,
-
-                        -- Pretty formats
-                        DATE_FORMAT(s.start_time, '%h:%i %p') AS start_time_fmt,
-                        DATE_FORMAT(s.end_time,   '%h:%i %p') AS end_time_fmt,
-                        IFNULL(DATE_FORMAT(s.clockin, '%h:%i %p'), NULL)  AS clockin_fmt,
-                        IFNULL(DATE_FORMAT(s.clockout, '%h:%i %p'), NULL) AS clockout_fmt,
-
-                        -- scheduled hours (decimal)
-                        (
-                        CASE
-                            WHEN TIME(s.end_time) <= TIME(s.start_time)
-                            THEN TIMESTAMPDIFF(SECOND, s.start_time, DATE_ADD(s.end_time, INTERVAL 1 DAY)) / 3600
-                            ELSE TIMESTAMPDIFF(SECOND, s.start_time, s.end_time) / 3600
-                        END
-                        ) AS scheduled_hours,
-
-                        -- hours worked (decimal) — only if both exist
-                        (
-                        CASE
-                            WHEN s.clockin IS NOT NULL AND s.clockout IS NOT NULL THEN
-                            CASE
-                                WHEN TIME(s.clockout) <= TIME(s.clockin)
-                                THEN TIMESTAMPDIFF(SECOND, s.clockin, DATE_ADD(s.clockout, INTERVAL 1 DAY)) / 3600
-                                ELSE TIMESTAMPDIFF(SECOND, s.clockin, s.clockout) / 3600
-                            END
-                            ELSE 0
-                        END
-                        ) AS hours_worked,
-
-                        -- total pay calculation
-                        (
-                        CASE
-                            WHEN s.clockin IS NOT NULL AND s.clockout IS NOT NULL THEN
-                            (
-                                CASE
-                                    WHEN TIME(s.clockout) <= TIME(s.clockin)
-                                    THEN TIMESTAMPDIFF(SECOND, s.clockin, DATE_ADD(s.clockout, INTERVAL 1 DAY)) / 3600
-                                    ELSE TIMESTAMPDIFF(SECOND, s.clockin, s.clockout) / 3600
-                                END
-                            ) * s.pay_per_hour
-                            ELSE 0
-                        END
-                        ) AS total_pay
-
-                    FROM scheduling s
-                    LEFT JOIN users u ON u.email = s.email
-                    LEFT JOIN locations l ON s.location_id = l.id
-                    WHERE " . implode(' AND ', $conds) . $searchCond . "
-                    ORDER BY " . $orderBy . "
-                    LIMIT ? OFFSET ?
-                    ";
-
-                    // Add pagination parameters
-                    $bind[] = $length;
-                    $bind[] = $start;
-                    $types .= "ii";
-
-                    $stmt = $this->db->prepare($sql);
-                    $stmt->bind_param($types, ...$bind);
-                    $stmt->execute();
-                    $res = $stmt->get_result();
-
-                    $rows = [];
-                    while ($r = $res->fetch_assoc()) {
-                        // Determine status
-                        $status = 'scheduled';
-                        if ($r['clockin'] && $r['clockout']) {
-                            $status = 'completed';
-                        } elseif ($r['clockin']) {
-                            $status = 'in-progress';
-                        } elseif(!$r['clockin'] && !$r['clockout'] && date('Y-m-d') > $r['date']){
-                            $status = 'missed';
-                        }
-                        
-                        // Normalize numeric precision (2 dp)
-                        $r['pay_per_hour'] = isset($r['pay_per_hour']) ? number_format((float)$r['pay_per_hour'], 2, '.', '') : '0.00';
-                        $r['scheduled_hours'] = number_format((float)$r['scheduled_hours'], 2, '.', '');
-                        $r['hours_worked'] = number_format((float)$r['hours_worked'], 2, '.', '');
-                        $r['total_pay'] = number_format((float)$r['total_pay'], 2, '.', '');
-                        $r['status'] = $status;
-                        $rows[] = $r;
-                    }
-
-                    // Return DataTables formatted response
-                    echo json_encode([
-                        'draw' => $draw,
-                        'recordsTotal' => $totalRecords,
-                        'recordsFiltered' => $filteredRecords,
-                        'data' => $rows
-                    ]);
-                }
-                else {
+                } else {
                     echo json_encode([
                         'status' => false,
                         'message' => 'Invalid action specified'
@@ -2208,6 +1874,149 @@
                 ]);
             }
         }
+
+        public function agencySchedules(){
+            $action = $_POST['action'] ?? '';
+
+            try {
+                if ($action === 'spreadsheet') {
+                    $startDate = $_POST['start_date'] ?? date('Y-m-d');
+                    $endDate = $_POST['end_date'] ?? date('Y-m-d', strtotime('+6 days'));
+                    $agency = trim($_POST['agency'] ?? '');
+                    
+                    // Build filter conditions
+                    $conds = ["DATE(s.schedule_date) BETWEEN ? AND ?"];
+                    $bind = [$startDate, $endDate];
+                    $types = "ss";
+
+                    if (!empty($agency)) {
+                        $conds[] = "s.agency_id = ?";
+                        $bind[] = $agency;
+                        $types .= "s";
+                    }
+
+                    // Main query for spreadsheet data
+                    $sql = "
+                    SELECT
+                        s.id,
+                        CONCAT(u.firstname, ' ', u.lastname) AS staff_name,
+                        l.address AS agency_address,
+                        l.name AS agency_name,
+                        DATE(s.schedule_date) AS schedule_date,
+                        s.start_time,
+                        s.end_time,
+                        s.clockin,
+                        s.clockout,
+                        
+                        -- Pretty time formats
+                        DATE_FORMAT(s.start_time, '%h:%i %p') AS start_time_fmt,
+                        DATE_FORMAT(s.end_time, '%h:%i %p') AS end_time_fmt,
+                        IFNULL(DATE_FORMAT(s.clockin, '%h:%i %p'), 'Not clocked in') AS clockin_fmt,
+                        IFNULL(DATE_FORMAT(s.clockout, '%h:%i %p'), 'Not clocked out') AS clockout_fmt
+                        
+                    FROM agency_staffs_schedule s
+                    LEFT JOIN agency_staffs u ON u.id = s.staff_id
+                    LEFT JOIN agencies l ON s.agency_id = l.id
+                    WHERE " . implode(' AND ', $conds) . "
+                    ORDER BY l.address, s.schedule_date, s.start_time
+                    ";
+
+                    $stmt = $this->db->prepare($sql);
+                    $stmt->bind_param($types, ...$bind);
+                    $stmt->execute();
+                    $res = $stmt->get_result();
+
+                    // Organize data for spreadsheet format
+                    $spreadsheetData = [
+                        'dates' => [],
+                        'agencies' => [],
+                        'schedule_data' => []
+                    ];
+
+                    // Generate date range
+                    $currentDate = $startDate;
+                    while ($currentDate <= $endDate) {
+                        $spreadsheetData['dates'][] = [
+                            'date' => $currentDate,
+                            'day' => date('D', strtotime($currentDate)),
+                            'display' => date('M j', strtotime($currentDate))
+                        ];
+                        $currentDate = date('Y-m-d', strtotime($currentDate . ' +1 day'));
+                    }
+
+                    $schedules = [];
+                    while ($row = $res->fetch_assoc()) {
+                        // Determine status
+                        $status = 'scheduled';
+                        if ($row['clockin'] && $row['clockout']) {
+                            $status = 'completed';
+                        } elseif ($row['clockin']) {
+                            $status = 'ongoing';
+                        } elseif (!$row['clockin'] && date('Y-m-d') > $row['schedule_date']) {
+                            $status = 'missed';
+                        }
+
+                        $scheduleItem = [
+                            'id' => $row['id'],
+                            'staff_name' => $row['staff_name'],
+                            'agency' => $row['agency_name'],
+                            'date' => $row['schedule_date'],
+                            'start_time' => $row['start_time_fmt'],
+                            'end_time' => $row['end_time_fmt'],
+                            'clockin' => $row['clockin_fmt'],
+                            'clockout' => $row['clockout_fmt'],
+                            'status' => $status
+                        ];
+
+                        $schedules[] = $scheduleItem;
+                        
+                        // Track unique locations
+                        if (!in_array($row['agency_name'], $spreadsheetData['agencies'])) {
+                            $spreadsheetData['agencies'][] = $row['agency_name'];
+                        }
+                    }
+
+                    // Organize data by location and date for easy frontend consumption
+                    foreach ($spreadsheetData['agencies'] as $agency) {
+                        $locationData = [];
+                        
+                        foreach ($spreadsheetData['dates'] as $dateInfo) {
+                            $dateSchedules = array_filter($schedules, function($schedule) use ($agency, $dateInfo) {
+                                return $schedule['agency'] === $agency && 
+                                    $schedule['date'] === $dateInfo['date'];
+                            });
+                            
+                            $locationData[$dateInfo['date']] = array_values($dateSchedules);
+                        }
+                        
+                        $spreadsheetData['schedule_data'][$agency] = $locationData;
+                    }
+
+                    echo json_encode([
+                        'status' => true,
+                        'data' => $spreadsheetData,
+                        'date_range' => [
+                            'start_date' => $startDate,
+                            'end_date' => $endDate
+                        ]
+                    ]);
+
+                } else {
+                    echo json_encode([
+                        'status' => false,
+                        'message' => 'Invalid action specified'
+                    ]);
+                }
+
+            } catch (Exception $e) {
+                echo json_encode([
+                    'status' => false,
+                    'message' => 'Error: ' . $e->getMessage()
+                ]);
+            }
+        }
+
+        
 
     public function updateProfile(){
         try {
@@ -2472,9 +2281,12 @@
     }
 
     public function getScheduleDetails() {
+
         $scheduleId = isset($_POST['schedule_id']) ? (int)$_POST['schedule_id'] : 0;
 
         $response = $this->allmodels->getScheduleById($scheduleId);
+
+        error_log("Controller Get Schedule Details: Schedule ID: $scheduleId, Response: " . json_encode($response));
 
         echo json_encode($response);
         
@@ -2543,6 +2355,66 @@
 
         echo json_encode($response);
     }
+
+    public function processAgency(){
+        $id = $_POST['id'] ?? 0;
+        $name = $this->allmodels->sanitizeInput($_POST['name']);
+        $email = $this->allmodels->sanitizeInput($_POST['email'] ?? '');
+        $phone = $this->allmodels->sanitizeInput($_POST['phone'] ?? '');
+        $address = $this->allmodels->sanitizeInput($_POST['address'] ?? '');
+        $province = $this->allmodels->sanitizeInput($_POST['province'] ?? '');
+        $zip = $this->allmodels->sanitizeInput($_POST['zip'] ?? '');
+        $response = $this->allmodels->saveAgency($id, $name, $email, $phone, $address, $province, $zip);
+
+        echo json_encode($response);
+    }
+
+    public function processAgencyStaffRegistration(){
+        //error_log("processAgencyStaffRegistration".print_r($_POST, true));
+       
+            $id = $_POST['id'] ?? 0;
+            $firstname = $this->allmodels->sanitizeInput($_POST['firstname']);
+            $lastname = $this->allmodels->sanitizeInput($_POST['lastname']);
+            $email = $this->allmodels->sanitizeInput($_POST['email']);
+            $phone = $this->allmodels->sanitizeInput($_POST['phone']);
+            $address = $this->allmodels->sanitizeInput($_POST['address']);
+            $agency = $this->allmodels->sanitizeInput($_POST['agency']);
+
+            //error_log("processAgencyStaffRegistration: $id, $firstname, $lastname, $email, $phone, $address, $agency");
+
+            $response = $this->allmodels->saveAgencystaff($id, $firstname, $lastname, $email, $phone, $address, $agency);
+
+            echo json_encode($response);
+        
+    }
+
+    public function fetchAgencyStaffByLocation(){
+        $agency_id = $this->allmodels->sanitizeInput($_POST['agency_id']);
+        $response = $this->allmodels->getAgencyStaffByLocation($agency_id);
+        echo json_encode($response);
+    }
+
+    public function processAgencyDeletion(){
+        $id = $_POST['id'] ?? 0;
+        $response = $this->allmodels->deleteAgency($id);
+
+        echo json_encode($response);
+    }
+
+    public function processAgencystaffDeletion(){
+        $id = $_POST['id'] ?? 0;
+        $response = $this->allmodels->deleteAgencystaff($id);
+
+        echo json_encode($response);
+    }
+
+    public function processAgencyStaffSchedules(){
+        $schedules = $_POST['schedules'] ?? []; // This will be a PHP array
+        $agencyId = $_POST['agency_id'] ?? 0;
+        $response = $this->allmodels->saveStaffAgencySchedules($schedules, $agencyId);
+        echo json_encode($response);
+    }
+
 
 }
 

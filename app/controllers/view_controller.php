@@ -5,6 +5,7 @@ class ViewController {
     private $db;
     private $allmodels;
     
+
     public function __construct($db) {
         $this->db = $db;
         $this->allmodels = new allmodels($db);
@@ -19,9 +20,9 @@ class ViewController {
     }
     // Display the dashboard page
     public function showDashboardPage($rootUrl){
-        if (session_status() === PHP_SESSION_NONE) {
+        if (session_status() === PHP_SESSION_NONE){
                 session_start();
-            }
+        }
         if (isset($_SESSION['better_email'])){
 
             $email = $_SESSION['better_email'];
@@ -76,7 +77,7 @@ class ViewController {
     public function showAllUsersPage($rootUrl){
 
         if (session_status() === PHP_SESSION_NONE) {
-                session_start();
+            session_start();
         }
 
         if (isset($_SESSION['better_email'])){
@@ -147,6 +148,7 @@ class ViewController {
 
     // Display the all locations page
     public function showCreateUserPage($rootUrl){
+
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
@@ -409,6 +411,7 @@ class ViewController {
     }
 
     public function showGenerateReportPage($rootUrl){
+
         if (session_status() === PHP_SESSION_NONE) {
             session_start();
         }
@@ -490,10 +493,205 @@ class ViewController {
 
     }
 
+
+
+    public function showAgencyPage($rootUrl){
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if (isset($_SESSION['better_email'])){
+
+            $email = $_SESSION['better_email'];
+            $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
+            date_default_timezone_set($timezone);
+            $fetchuserinfo = $this->allmodels->getUserInfo($email);
+            $all_locations = $this->allmodels->fetchlocations();
+            $all_roles = $this->allmodels->fetchAllRoles();
+            $user_role = $fetchuserinfo['role'];
+
+            if($fetchuserinfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'view.agencycreation')){
+
+                $data = [
+					'all_location' => $all_locations,
+                    'user_info' => $fetchuserinfo,
+                    'all_roles' => $all_roles
+				];
+
+                require_once('app/views/create_agency.php');
+
+            } else {                
+                $this->forbiddenPage();
+            }           
+
+        } else {
+			require_once('app/views/login.php');
+		}
+    }
+
+    public function showAgencyStaffs($rootUrl){
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if (isset($_SESSION['better_email'])){
+
+            $email = $_SESSION['better_email'];
+            $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
+            date_default_timezone_set($timezone);
+            $fetchuserinfo = $this->allmodels->getUserInfo($email);
+            $all_locations = $this->allmodels->fetchlocations();
+            $all_roles = $this->allmodels->fetchAllRoles();
+            $user_role = $fetchuserinfo['role'];
+
+            if($fetchuserinfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'view.agencystaffs')){
+
+                $data = [
+					'all_location' => $all_locations,
+                    'user_info' => $fetchuserinfo,
+                    'all_roles' => $all_roles,
+                    'all_agencies' => $this->allmodels->fetchAgencies(0)
+				];
+
+                require_once('app/views/agency_staffs.php');
+
+            } else {                
+                $this->forbiddenPage();
+            }           
+
+        } else {
+			require_once('app/views/login.php');
+		}
+    }
+
+    public function showCreateAgencySchedulePage($rootUrl){
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if (isset($_SESSION['better_email'])){
+
+            $email = $_SESSION['better_email'];
+            $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
+            date_default_timezone_set($timezone);
+            $fetchuserinfo = $this->allmodels->getUserInfo($email);
+            $all_locations = $this->allmodels->fetchlocations();
+            $all_roles = $this->allmodels->fetchAllRoles();
+            $user_role = $fetchuserinfo['role'];
+
+            if($fetchuserinfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'create.agencyschedule')){
+
+                $data = [
+					'all_location' => $all_locations,
+                    'user_info' => $fetchuserinfo,
+                    'all_roles' => $all_roles,
+                    'all_agencies' => $this->allmodels->fetchAgencies(0)
+				];
+
+                require_once('app/views/create_agency_schedule.php');
+
+            } else {                
+                $this->forbiddenPage();
+            }           
+
+        } else {
+			require_once('app/views/login.php');
+		}
+    }
+
+    public function showAllAgencySchedulePage($rootUrl){
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        if (isset($_SESSION['better_email'])){
+
+            $email = $_SESSION['better_email'];
+            $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
+            date_default_timezone_set($timezone);
+            $fetchuserinfo = $this->allmodels->getUserInfo($email);
+            $all_locations = $this->allmodels->fetchlocations();
+            $all_roles = $this->allmodels->fetchAllRoles();
+            $user_role = $fetchuserinfo['role'];
+
+            if($fetchuserinfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'view.agencyschedule')){
+
+                $data = [
+					'all_location' => $all_locations,
+                    'user_info' => $fetchuserinfo,
+                    'all_roles' => $all_roles,
+                    'all_agencies' => $this->allmodels->fetchAgencies(0)
+				];
+
+                require_once('app/views/agency_schedule.php');
+
+            } else {                
+                $this->forbiddenPage();
+            }           
+
+        } else {
+			require_once('app/views/login.php');
+		}
+    }
+
+    public function runRolePermissions() {
+
+        $roleArray = [
+            'view.staff' => 'View staff members',
+            'edit.staff' => 'Edit staff information',
+            'view.staffinfo' => 'View detailed staff info',
+            'delete.staff' => 'Delete staff members',
+            'change.staffstatus' => 'Change staff status',
+            'create.staff' => 'Create new staff',
+            'view.location' => 'View locations',
+            'create.location' => 'Create new location',
+            'edit.location' => 'Edit locations',
+            'delete.location' => 'Delete locations',
+            'create.schedule' => 'Create schedules',
+            'view.schedule' => 'View schedules',
+            'view.report' => 'View reports',
+            'generate.report' => 'Generate reports',
+            'update.schedule' => 'Update schedule information',
+            'delete.staffdoc' => 'Delete Staff Document',
+            'activate.staffdoc' => 'Activate staff document status',
+            'view.staffcreation' => 'View Staff creation page',
+            'view.agencycreation' => 'View Agency creation page',
+            'create.agencyschedule' => 'Create agency schedules',
+            'view.agencystaffs' => "View agency's staffs", 
+            'view.agencyschedule' => "View agency's schedules",
+        ];
+
+        $insertedCount = 0;
+    
+        foreach ($roleArray as $key => $value) {
+            $sql = "INSERT IGNORE INTO permissions (name, description) VALUES (?, ?)";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bind_param('ss', $key, $value);
+            
+            if ($stmt->execute() && $stmt->affected_rows > 0) {
+                $insertedCount++;
+            }
+            
+            $stmt->close();
+        }
+
+        $skippedCount = count($roleArray) - $insertedCount;
+        echo "Role permissions completed. Inserted: {$insertedCount}, Skipped: {$skippedCount}";
+
+    }
+
     public function ForbiddenPage() {
         http_response_code(403);
         require_once('app/views/forbidden.php');
         exit;
+    }
+
+    public function TestingPage() {
+        require_once('app/views/testing.php');
     }
 
     /**

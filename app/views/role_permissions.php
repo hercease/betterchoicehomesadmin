@@ -189,24 +189,24 @@
                 ]
             });
         });
-            const showToast = {
-                success: (message, title = "Success") => {
-                    iziToast.success({
-                        title: `<i class="fas fa-check-circle"></i> ${title}`,
-                        message: message,
-                        position: 'topRight',
-                        timeout: 3000
-                    });
-                },
-                error: (message, title = "Error") => {
-                    iziToast.error({
-                        title: `<i class="fas fa-times-circle"></i> ${title}`,
-                        message: message,
-                        position: 'topRight',
-                        timeout: 5000
-                    });
-                }
-            };
+        const showToast = {
+            success: (message, title = "Success") => {
+                iziToast.success({
+                    title: `<i class="fas fa-check-circle"></i> ${title}`,
+                    message: message,
+                    position: 'topRight',
+                    timeout: 3000
+                });
+            },
+            error: (message, title = "Error") => {
+                iziToast.error({
+                    title: `<i class="fas fa-times-circle"></i> ${title}`,
+                    message: message,
+                    position: 'topRight',
+                    timeout: 5000
+                });
+            }
+        };
         // Global variable to store roles and permissions data
         let rolesData = [];
 

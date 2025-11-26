@@ -90,6 +90,21 @@ switch ($url) {
             $viewController->showDocumentManagementPage($rootUrl);
         }
         break;
+    case '/create_agency':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $viewController->showAgencyPage($rootUrl);
+        }
+        break;
+    case '/agency_staffs':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $viewController->showAgencyStaffs($rootUrl);
+        }
+        break;
+    case '/create_agency_schedule':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $viewController->showCreateAgencySchedulePage($rootUrl);
+        }
+        break;
     case '/forbidden':
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $viewController->ForbiddenPage($rootUrl);
@@ -129,6 +144,21 @@ switch ($url) {
     case '/run_schedule_check':
         if ($_SERVER['REQUEST_METHOD'] === 'GET'){
             $modelController->runScheduleCheck();
+        }
+        break;
+    case '/run_role_permissions':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET'){
+            $viewController->runRolePermissions();
+        }
+        break;
+    case '/testing_page':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET'){
+            $viewController->TestingPage();
+        }
+        break;
+    case '/agency_schedules':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET'){
+            $viewController->showAllAgencySchedulePage($rootUrl);
         }
         break;
     case '/handlelogin':
@@ -269,6 +299,46 @@ switch ($url) {
     case '/delete_role':
         if ($_SERVER['REQUEST_METHOD'] === 'POST'){
             $modelController->deleteARole();
+        }
+        break;
+    case '/fetch_all_agencies':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->fetchAllAgenciesData();
+        }
+        break;
+    case '/fetch_all_agency_users':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->fetchAllAgenciesStaffData();
+        }
+        break;
+    case '/insertagency':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->processAgency();
+        }
+        break;
+    case '/insertagencystaff':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->processAgencyStaffRegistration();
+        }
+        break;
+    case '/delete_agencystaff':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->processAgencystaffDeletion();
+        }
+        break;
+    case '/get_agency_staff_by_location':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->fetchAgencyStaffByLocation();
+        }
+        break;
+    case '/process_agency_staff_schedules':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->processAgencyStaffSchedules();
+        }
+        break;
+    case '/fetch_agency_schedules':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->agencySchedules();
         }
         break;
     

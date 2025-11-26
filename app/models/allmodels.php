@@ -647,6 +647,35 @@ class allmodels{
 
             $query .= "$searchQuery ORDER BY id DESC LIMIT ?, ?";
 
+        } elseif($tabletype === 'allagencies'){
+
+            $query = "SELECT * FROM agencies ";
+
+            if (!empty($searchValue)) {
+                $searchQuery = " WHERE name LIKE ? OR address LIKE ? OR phone LIKE ? OR province LIKE ? OR email LIKE ?";
+                $params[] = "%$searchValue%";
+                $paramTypes .= "s";
+            }
+
+            $query .= "$searchQuery ORDER BY id DESC LIMIT ?, ?";
+
+        } elseif ($tabletype === 'allagencystaffs'){
+
+            $query = "SELECT ast.*, ag.name as agency_name FROM agency_staffs ast LEFT JOIN agencies ag ON ast.agency_id = ag.id";
+            if(!empty($searchValue)){
+
+                $searchQuery = " WHERE ast.firstname LIKE ? 
+                        OR ast.email LIKE ? 
+                        OR ast.lastname LIKE ? 
+                        OR ast.phone LIKE ? 
+                        OR ag.name LIKE ?";
+                $params = array_fill(0, 5, "%$searchValue%");
+                $paramTypes = "sssss";
+
+            }
+
+            $query .= "$searchQuery ORDER BY ast.id DESC LIMIT ?, ?";
+
         } else {
             // Handle invalid table type
             die("Invalid table type provided.");
@@ -726,6 +755,43 @@ class allmodels{
                                         <i class='fas fa-edit'></i>
                                     </a>
                                     <a data-id='".$row['id']."' class='btn btn-sm btn-danger del_location'>
+                                        <i class='fas fa-trash'></i>
+                                    </a>"
+                ];
+
+            } else if($tabletype === 'allagencies'){
+
+                $data[] = [
+                    "id" => ++$i,
+                    "name" => $row['name'],
+                    "email" => $row['email'],
+                    "address" => $row['address'],
+                    "phone" => $row['phone'],
+                    "province" => $row['province'],
+                    "zip" => $row['zip'],
+                    "created_on" => date('Y-m-d', strtotime($row['created_on'])),
+                    "action" => "<a data-bs-toggle='modal' data-name='".$row['name']."' data-email='".$row['email']."' data-phone='".$row['phone']."' data-zip='".$row['zip']."' data-province='".$row['province']."' data-address='".$row['address']."' data-id='".$row['id']."'  data-bs-target='#addAgencyModal' class='btn btn-sm btn-primary me-1'>
+                                        <i class='fas fa-edit'></i>
+                                    </a>
+                                    <a data-id='".$row['id']."' class='btn btn-sm btn-danger del_agency'>
+                                        <i class='fas fa-trash'></i>
+                                    </a>"
+                ];
+
+            } else if($tabletype === 'allagencystaffs'){
+
+                $data[] = [
+                    "id" => ++$i,
+                    "firstname" => $row['firstname'] . ' ' . '<span class="badge bg-primary">' . $row['agency_name'] . '</span>',
+                    "lastname" => $row['lastname'],
+                    "email" => $row['email'],
+                    "address" => $row['address'],
+                    "phone" => $row['phone'],
+                    "created_on" => date('Y-m-d', strtotime($row['created_on'])),
+                    "action" => "<a data-bs-toggle='modal'data-agency='".$row['agency_id']."' data-firstname='".$row['firstname']."' data-email='".$row['email']."' data-phone='".$row['phone']."' data-lastname='".$row['lastname']."'  data-address='".$row['address']."' data-id='".$row['id']."'  data-bs-target='#addAgencystaffModal' class='btn btn-sm btn-primary me-1'>
+                                        <i class='fas fa-edit'></i>
+                                    </a>
+                                    <a data-id='".$row['id']."' class='btn btn-sm btn-danger del_agencystaff'>
                                         <i class='fas fa-trash'></i>
                                     </a>"
                 ];
@@ -859,7 +925,7 @@ class allmodels{
     
         switch ($tabletype){
             case 'allusers':
-                $query = "SELECT COUNT(*) AS count FROM users WHERE role IN ('manager', 'staff', 'hr', 'scheduler', 'accountant', 'director of service')";
+                $query = "SELECT COUNT(*) AS count FROM users WHERE role IN ('manager', 'staff', 'hr', 'scheduler', 'accountant', 'dos')";
                 break;
             case 'locations':
                 $query = "SELECT COUNT(*) AS count FROM locations";
@@ -872,6 +938,12 @@ class allmodels{
                 break;
             case 'usercertificates':
                 $query = "SELECT COUNT(*) AS count FROM certificates ";
+                break;
+            case 'allagencies':
+                $query = "SELECT COUNT(*) AS count FROM agencies ";
+                break;
+            case 'allagencystaffs':
+                $query = "SELECT COUNT(*) AS count FROM agency_staffs";
                 break;
             default:
                 throw new Exception("Invalid table type provided.");
@@ -937,6 +1009,26 @@ class allmodels{
                 $searchQuery = " WHERE schedule_date LIKE ? OR start_time LIKE ? OR end_time LIKE ? OR location LIKE ? OR shift_type LIKE ? OR pay_per_hour LIKE ?";
                 $params = ["%$searchValue%", "%$searchValue%", "%$searchValue%", "%$searchValue%", "%$searchValue%", "%$searchValue%"];
                 $paramTypes = "ssssss";
+            }
+        } else if($tabletype === 'allagencies'){
+             $query = "SELECT COUNT(*) AS count FROM agencies ";
+            if (!empty($searchValue)) {
+                $searchQuery = " WHERE name LIKE ? OR address LIKE ? OR city LIKE ? OR province LIKE ?";
+                $params = ["%$searchValue%", "%$searchValue%", "%$searchValue%", "%$searchValue%"];
+                $paramTypes = "ssss";
+            }
+        } else if($tabletype === 'allagencystaffs'){
+            $query = "SELECT ast.*, ag.name as agency_name FROM agency_staffs ast LEFT JOIN agencies ag ON ast.agency_id = ag.id";
+            if(!empty($searchValue)){
+
+                $searchQuery = " WHERE ast.firstname LIKE ? 
+                        OR ast.email LIKE ? 
+                        OR ast.lastname LIKE ? 
+                        OR ast.phone LIKE ? 
+                        OR ag.name LIKE ?";
+                $params = array_fill(0, 5, "%$searchValue%");
+                $paramTypes = "sssss";
+
             }
         }  else {
             throw new InvalidArgumentException("Invalid table type provided.");
@@ -1808,6 +1900,436 @@ class allmodels{
         }
         
         return $message;
+    }
+
+    public function saveAgency($id, $name, $email, $phone, $address, $province, $zip) {
+    
+    // Validate inputs
+        if (empty($name) || empty($email) || empty($address)) {
+            return ['status' => false, 'message' => 'Name, email, and address are required'];
+        }
+        
+        $email = filter_var($email, FILTER_SANITIZE_EMAIL);
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['status' => false, 'message' => 'Invalid email format'];
+        }
+
+        $date = date('Y-m-d H:i:s');
+
+        try {
+            if ($id > 0) {
+                $sql = "UPDATE agencies SET name = ?, email = ?, phone = ?, address = ?, province = ?, zip = ? WHERE id = ?";
+                $stmt = $this->db->prepare($sql);
+                $stmt->bind_param("ssssssi", $name, $email, $phone, $address, $province, $zip, $id);
+            } else {
+                $sql = "INSERT INTO agencies (name, email, address, phone, province, zip, created_on) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                $stmt = $this->db->prepare($sql);
+                $stmt->bind_param("sssssss", $name, $email, $address, $phone, $province, $zip, $date);
+            }
+            
+            $stmt->execute();
+            $affected = $stmt->affected_rows;
+            $insertId = $stmt->insert_id;
+            $stmt->close();
+            
+            return [
+                'status' => $affected > 0,
+                'message' => $affected > 0 ? ($id > 0 ? 'Agency updated successfully' : 'Agency created successfully') : 'No changes made',
+                'insert_id' => $insertId
+            ];
+            
+        } catch (mysqli_sql_exception $e) {
+            // Handle duplicate key errors
+            if ($e->getCode() === 1062) { // MySQL duplicate entry error code
+                return ['status' => false, 'message' => 'Email or address already exists'];
+            }
+            return ['status' => false, 'message' => 'Database error: ' . $e->getMessage()];
+        }
+    }
+
+    public function deleteAgency($id){
+        try {
+            $sql = "DELETE FROM agencies WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bind_param("i", $id);
+            $stmt->execute();
+            $affected = $stmt->affected_rows;
+            $stmt->close();
+            return [
+                'status' => $affected > 0,
+                'message' => $affected > 0 ? 'Agency deleted successfully' : 'No changes made'
+            ];
+        } catch (mysqli_sql_exception $e) {
+            return ['status' => false, 'message' => 'Database error: ' . $e->getMessage()];
+        }
+    }
+
+    public function fetchAgencies($id = 0) {
+        try {
+            if ($id > 0) {
+                $sql = "SELECT * FROM agencies WHERE id = ?";
+                $stmt = $this->db->prepare($sql);
+                $stmt->bind_param("i", $id);
+            } else {
+                $sql = "SELECT * FROM agencies ORDER BY name ASC";
+                $stmt = $this->db->prepare($sql);
+            }
+            
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $data = $result->fetch_all(MYSQLI_ASSOC);
+            $stmt->close();
+            
+            $message = $id > 0 
+                ? ($result->num_rows > 0 ? 'Agency found' : 'No agency found with this ID')
+                : ($result->num_rows > 0 ? 'Agencies retrieved successfully' : 'No agencies found');
+                
+            return [
+                'status' => $result->num_rows > 0,
+                'data' => $data,
+                'message' => $message
+            ];
+            
+        } catch (mysqli_sql_exception $e) {
+            return [
+                'status' => false, 
+                'data' => [],
+                'message' => 'Database error: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    public function saveAgencystaff($id, $firstname, $lastname, $email, $phone, $address, $agency){
+        // Validate inputs
+        if (empty($firstname) || empty($lastname) || empty($email) || empty($address)) {
+            return ['status' => false, 'message' => 'Firstname, lastname, email, and address are required'];
+        }
+        
+        $email = filter_var($email, FILTER_SANITIZE_EMAIL);
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return ['status' => false, 'message' => 'Invalid email format'];
+        }
+
+        $date = date('Y-m-d H:i:s');
+
+        try {
+            if ($id > 0) {
+                $sql = "UPDATE agency_staffs SET firstname = ?, lastname = ?, email = ?, address = ?, phone = ?, agency_id = ? WHERE id = ?";
+                $stmt = $this->db->prepare($sql);
+                $stmt->bind_param("ssssssi", $firstname, $lastname, $email, $address, $phone, $agency, $id);
+            } else {
+                $sql = "INSERT INTO agency_staffs (firstname, lastname, email, address, phone, created_on, agency_id) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                $stmt = $this->db->prepare($sql);
+                $stmt->bind_param("ssssssi", $firstname, $lastname, $email, $address, $phone, $date, $agency);
+            }
+            
+            $stmt->execute();
+            $affected = $stmt->affected_rows;
+            $insertId = $stmt->insert_id;
+            $stmt->close();
+            
+            return [
+                'status' => $affected > 0,
+                'message' => $affected > 0 ? ($id > 0 ? 'Staff details updated successfully' : 'Staff details created successfully') : 'No changes made',
+                'insert_id' => $insertId
+            ];
+            
+        } catch (mysqli_sql_exception $e) {
+            // Handle duplicate key errors
+            if ($e->getCode() === 1062) { // MySQL duplicate entry error code
+                return ['status' => false, 'message' => 'Phone or email already exists'];
+            }
+            return ['status' => false, 'message' => 'Error: ' . $e->getMessage()];
+        }
+    }
+
+    public function deleteAgencystaff($id) {
+        try {
+            $sql = "DELETE FROM agency_staffs WHERE id = ?";
+            $stmt = $this->db->prepare($sql);
+            $stmt->bind_param('i', $id);
+            $stmt->execute();
+            $affected = $stmt->affected_rows;
+            $stmt->close();
+            return [
+                'status' => $affected > 0,
+                'message' => $affected > 0 ? 'Staff deleted successfully' : 'No changes made'
+            ];
+        } catch (mysqli_sql_exception $e) {
+            return ['status' => false, 'message' => 'Database error: ' . $e->getMessage()];
+        }
+    }
+
+     public function getAgencyStaffByLocation($agencyId) {
+        try {
+            // Validate location ID
+            if (!is_numeric($agencyId) || $agencyId <= 0) {
+                throw new Exception("Invalid location ID");
+            }
+
+            // SQL query to fetch staff for the specified location
+            $sql = "
+                SELECT 
+                    s.id,
+                    s.email,
+                    CONCAT(s.firstname, ' ', s.lastname) AS staff_name,
+                    l.name AS agency_name
+                FROM agency_staffs s
+                LEFT JOIN agencies l ON l.id = s.agency_id
+                WHERE s.agency_id = ? 
+                ORDER BY s.firstname, s.lastname
+            ";
+
+            $stmt = $this->db->prepare($sql);
+            $stmt->bind_param('i', $agencyId);
+            $stmt->execute();
+            
+            $result = $stmt->get_result();
+            $staff = [];
+
+            while ($row = $result->fetch_assoc()) {
+                $staff[] = [
+                    'id' => $row['id'],
+                    'name' => $row['staff_name'],
+                    'email' => $row['email'],
+                    'agency_name' => $row['agency_name']
+                ];
+            }
+
+            $stmt->close();
+
+            return [
+                'status' => true,
+                'data' => $staff,
+                'count' => count($staff)
+            ];
+
+        } catch (Exception $e) {
+            return [
+                'status' => false,
+                'message' => 'Error fetching staff: ' . $e->getMessage(),
+                'data' => [],
+                'count' => 0
+            ];
+        }
+    }
+
+    public function saveStaffAgencySchedules($schedules, $agencyId) {
+        try {
+
+            // Validate input - $schedules should already be a PHP array
+            if (empty($schedules) || !is_array($schedules)) {
+                throw new Exception("No schedule data provided or invalid format");
+            }
+
+            $savedCount = 0;
+            $failedSchedules = [];
+            $skippedSchedules = 0;
+
+            // Begin transaction for data consistency
+            $this->db->begin_transaction();
+
+            foreach ($schedules as $index => $schedule) {
+                try {
+                    // Debug: Log each schedule
+                    error_log("Processing schedule {$index}: " . print_r($schedule, true));
+
+                    // Skip schedules that don't have all required fields
+                    if (empty($schedule['start_time']) || empty($schedule['end_time']) || empty($schedule['shift_type'])) {
+                        error_log("Skipping schedule {$index} - missing required fields");
+                        $skippedSchedules++;
+                        continue;
+                    }
+
+                    // Validate other required fields
+                    if (empty($schedule['staff_id']) || empty($schedule['schedule_date']) || empty($schedule['pay_per_hour'])) {
+                        throw new Exception("Missing required fields for schedule at index {$index}");
+                    }
+
+                    // Use the agency_id from parameter for consistency
+                    $agencyId = (int)$agencyId;
+
+                    // Validate staff exists
+                    if (!$this->validateStaffExists($schedule['staff_id'])) {
+                        throw new Exception("Staff member does not exist");
+                    }
+
+                    // Check for duplicate schedule
+                    if ($this->scheduleExists($schedule['staff_id'], $schedule['schedule_date'])) {
+                        throw new Exception("Schedule already exists for a staff member on this date");
+                    }
+
+                    // Prepare schedule data
+                    $staffId = (int)$schedule['staff_id'];
+                    $scheduleDate = $this->db->real_escape_string($schedule['schedule_date']);
+                    $startTime = $this->db->real_escape_string($schedule['start_time']);
+                    $endTime = $this->db->real_escape_string($schedule['end_time']);
+                    $shiftType = $this->db->real_escape_string($schedule['shift_type']);
+                    $overnightType = $this->db->real_escape_string($schedule['overnight_type'] ?? '');
+                    $payPerHour = (float)$schedule['pay_per_hour'];
+
+                    // Get agency name
+                    $agencyName = $this->getAgencyName($agencyId);
+                    if (!$agencyName) {
+                        throw new Exception("Could not find agency name");
+                    }
+
+                    // Insert schedule
+                    $sql = "
+                        INSERT INTO agency_staffs_schedule (
+                            staff_id,
+                            agency_id, 
+                            agency_name,
+                            start_time, 
+                            end_time,
+                            shift_type,
+                            schedule_date,
+                            pay_per_hour,
+                            overnight_type,
+                            created_at,
+                            updated_at
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                    ";
+
+                    $stmt = $this->db->prepare($sql);
+                    if (!$stmt) {
+                        throw new Exception("Failed to prepare statement: " . $this->db->error);
+                    }
+
+                    $stmt->bind_param(
+                        'iisssssds', 
+                        $staffId,
+                        $agencyId, 
+                        $agencyName,
+                        $startTime,
+                        $endTime,
+                        $shiftType,
+                        $scheduleDate,
+                        $payPerHour,
+                        $overnightType
+                    );
+
+                    if (!$stmt->execute()) {
+                        throw new Exception("Failed to execute statement: " . $stmt->error);
+                    }
+
+                    $stmt->close();
+                    $savedCount++;
+                    error_log("Successfully saved schedule {$index}");
+
+                } catch (Exception $e) {
+                    error_log("Failed to save schedule at index {$index}: " . $e->getMessage());
+                    $failedSchedules[] = [
+                        'staff_id' => $schedule['staff_id'] ?? 'unknown',
+                        'schedule_date' => $schedule['schedule_date'] ?? 'unknown',
+                        'error' => $e->getMessage()
+                    ];
+                }
+            }
+
+            // Commit transaction if we have any successful inserts
+            if ($savedCount > 0) {
+                $this->db->commit();
+                return [
+                    'status' => true,
+                    'saved_count' => $savedCount,
+                    'skipped_count' => $skippedSchedules,
+                    'failed_count' => count($failedSchedules),
+                    'message' => "Successfully saved {$savedCount} schedules"
+                ];
+            } else {
+                $this->db->rollback();
+                return [
+                    'status' => false,
+                    'saved_count' => 0,
+                    'skipped_count' => $skippedSchedules,
+                    'failed_count' => count($failedSchedules),
+                    'message' => "No schedules were saved"
+                ];
+            }
+
+        } catch (Exception $e) {
+           
+            $this->db->rollback();
+            
+            return [
+                'status' => false,
+                'saved_count' => 0,
+                'message' => 'Error saving schedules: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    // Helper function to get agency name
+    private function getAgencyName($agencyId) {
+        $sql = "SELECT name FROM agencies WHERE id = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param('i', $agencyId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $stmt->close();
+        
+        return $row['name'] ?? null;
+    }
+
+    // Helper function to validate staff exists
+    private function validateStaffExists($staffId) {
+        $sql = "SELECT COUNT(*) as count FROM agency_staffs WHERE id = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param('i', $staffId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $stmt->close();
+        
+        return $row['count'] > 0;
+    }
+
+    // Check for duplicate schedule
+
+
+    private function validateStaffLocation($staffId, $agencyId) {
+        $sql = "SELECT COUNT(*) as count FROM agency_staffs WHERE id = ? AND agency_id = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param('ii', $staffId, $agencyId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $stmt->close();
+        
+        return $row['count'] > 0;
+    }
+
+    /**
+     * Check if schedule already exists for staff on date
+     */
+    private function scheduleExists($staffId, $scheduleDate) {
+
+        $sql = "SELECT COUNT(*) as count FROM agency_staffs_schedule WHERE staff_id = ? AND schedule_date = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param('is', $staffId, $scheduleDate);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $stmt->close();
+        
+        return $row['count'] > 0;
+    }
+
+    /**
+     * Get staff email from staff ID
+     */
+    private function getStaffEmail($staffId) {
+        $sql = "SELECT email FROM agency_staffs WHERE id = ?";
+        $stmt = $this->db->prepare($sql);
+        $stmt->bind_param('i', $staffId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $row = $result->fetch_assoc();
+        $stmt->close();
+        
+        return $row['email'] ?? null;
     }
 
 

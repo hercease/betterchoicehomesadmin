@@ -79,6 +79,27 @@
           <div class="nav-link-icon"><i data-feather="log-out"></i></div> Logout
         </a>
 
+        <div class="sidenav-menu-heading">Third Party Agency</div>
+
+        <a class="nav-link <?= isActive('create_agency', $currentPath) ?>" href="<?php echo $rootUrl ?>/create_agency">
+          <div class="nav-link-icon"><i data-feather="users"></i></div>
+          View Agencies
+        </a>
+
+        <a class="nav-link <?= isActive('create_agency_schedule', $currentPath) ?>" href="<?php echo $rootUrl ?>/create_agency_schedule">
+          <div class="nav-link-icon"><i data-feather="users"></i></div>
+          Create Agency Schedules
+        </a>
+
+        <a class="nav-link <?= isActive('agency_schedules', $currentPath) ?>" href="<?php echo $rootUrl ?>/agency_schedules">
+          <div class="nav-link-icon"><i data-feather="clock"></i></div>
+          View Agencies Schedules
+        </a>
+
+        <a class="nav-link <?= isActive('agency_staffs', $currentPath) ?>" href="<?php echo $rootUrl ?>/agency_staffs">
+          <div class="nav-link-icon"><i data-feather="users"></i></div>
+          Agencies Staffs
+        </a>
 
       <?php if ($data['user_info']['isAdmin'] > 0) { ?>
 
