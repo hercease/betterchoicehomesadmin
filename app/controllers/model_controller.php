@@ -989,7 +989,73 @@
                     'message' => 'Error: ' . $e->getMessage()
                 ]);
             }
-            
+        }
+
+        public function updateAgencySchedule(){
+
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+
+            $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
+
+            date_default_timezone_set($timezone);
+
+            $userInfo = $this->allmodels->getUserInfo($_SESSION['better_email']);
+
+            $user_role = $userInfo['role'];
+            $this->db->begin_transaction();
+
+            try{
+
+                if($userInfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'update.schedule')){
+              
+
+                $input = [];
+                $requiredFields = ['start_time', 'end_time', 'shift_type', 'pay_per_hour', 'schedule_id'];
+                foreach ($requiredFields as $field) {
+                    $input[$field] = $this->allmodels->sanitizeInput($_POST[$field] ?? '');
+                    if (empty($input[$field])) {
+                        throw new Exception(ucfirst($field) . " is required");
+                    }
+                }
+
+                //error_log(print_r($_POST, true));
+
+                $email = $_POST['email'];
+                $overnight_type = $_POST['overnight_type'] ?? '';
+
+                $stmt = $this->db->prepare("UPDATE agency_staffs_schedule SET start_time = ?, end_time = ?, shift_type = ?, pay_per_hour = ?, overnight_type = ? WHERE id = ?");
+                $stmt->bind_param("sssssi", $input['start_time'], $input['end_time'], $input['shift_type'], $input['pay_per_hour'], $overnight_type, $input['schedule_id']);
+                if($stmt->execute()){
+
+                    $logmessage =  "Update schedule for user: " . $email;
+                    $this->allmodels->logActivity($_SESSION['better_email'], $_SESSION['userid'], 'update-schedule', $logmessage,  date('Y-m-d H:i:s'));
+                
+                    $this->db->commit();
+                    echo json_encode([
+                        'status' => true,
+                        'message' => 'Schedule updated successfully'
+                    ]);
+
+                } else {
+                    throw new Exception("Execution failed: " . $stmt->error);
+                }
+                $stmt->close();
+
+                } else {
+                    throw new Exception("Unauthorized access. Insufficient privileges.");
+                }
+
+    
+            }catch(Exception $e){
+                $this->db->rollback();
+
+                echo json_encode([
+                    'status' => false,
+                    'message' => 'Error: ' . $e->getMessage()
+                ]);
+            }
         }
 
         public function changePassword(){
@@ -1882,16 +1948,16 @@
                 if ($action === 'spreadsheet') {
                     $startDate = $_POST['start_date'] ?? date('Y-m-d');
                     $endDate = $_POST['end_date'] ?? date('Y-m-d', strtotime('+6 days'));
-                    $agency = trim($_POST['agency'] ?? '');
+                    $location_id = trim($_POST['location_id'] ?? '');
                     
                     // Build filter conditions
                     $conds = ["DATE(s.schedule_date) BETWEEN ? AND ?"];
                     $bind = [$startDate, $endDate];
                     $types = "ss";
 
-                    if (!empty($agency)) {
-                        $conds[] = "s.agency_id = ?";
-                        $bind[] = $agency;
+                    if (!empty($location)) {
+                        $conds[] = "s.location_id = ?";
+                        $bind[] = $location_id;
                         $types .= "s";
                     }
 
@@ -1900,13 +1966,16 @@
                     SELECT
                         s.id,
                         CONCAT(u.firstname, ' ', u.lastname) AS staff_name,
-                        l.address AS agency_address,
-                        l.name AS agency_name,
+                        CONCAT(l.address, ', ', l.city) AS location_name,
                         DATE(s.schedule_date) AS schedule_date,
                         s.start_time,
                         s.end_time,
                         s.clockin,
                         s.clockout,
+                        s.pay_per_hour,
+                        s.shift_type,
+                        s.overnight_type,
+                        u.email,
                         
                         -- Pretty time formats
                         DATE_FORMAT(s.start_time, '%h:%i %p') AS start_time_fmt,
@@ -1916,9 +1985,9 @@
                         
                     FROM agency_staffs_schedule s
                     LEFT JOIN agency_staffs u ON u.id = s.staff_id
-                    LEFT JOIN agencies l ON s.agency_id = l.id
+                    LEFT JOIN locations l ON s.location_id = l.id
                     WHERE " . implode(' AND ', $conds) . "
-                    ORDER BY l.address, s.schedule_date, s.start_time
+                    ORDER BY s.schedule_date, s.start_time
                     ";
 
                     $stmt = $this->db->prepare($sql);
@@ -1929,7 +1998,7 @@
                     // Organize data for spreadsheet format
                     $spreadsheetData = [
                         'dates' => [],
-                        'agencies' => [],
+                        'locations' => [],
                         'schedule_data' => []
                     ];
 
@@ -1959,37 +2028,39 @@
                         $scheduleItem = [
                             'id' => $row['id'],
                             'staff_name' => $row['staff_name'],
-                            'agency' => $row['agency_name'],
+                            'location_name' => $row['location_name'],
                             'date' => $row['schedule_date'],
                             'start_time' => $row['start_time_fmt'],
                             'end_time' => $row['end_time_fmt'],
                             'clockin' => $row['clockin_fmt'],
                             'clockout' => $row['clockout_fmt'],
-                            'status' => $status
+                            'status' => $status,
+                            'pay_per_hour' => $row['pay_per_hour'],
+                            'email' => $row['email']
                         ];
 
                         $schedules[] = $scheduleItem;
                         
                         // Track unique locations
-                        if (!in_array($row['agency_name'], $spreadsheetData['agencies'])) {
-                            $spreadsheetData['agencies'][] = $row['agency_name'];
+                        if (!in_array($row['location_name'], $spreadsheetData['locations'])){
+                            $spreadsheetData['locations'][] = $row['location_name'];
                         }
                     }
 
                     // Organize data by location and date for easy frontend consumption
-                    foreach ($spreadsheetData['agencies'] as $agency) {
+                    foreach ($spreadsheetData['locations'] as $location) {
                         $locationData = [];
                         
                         foreach ($spreadsheetData['dates'] as $dateInfo) {
-                            $dateSchedules = array_filter($schedules, function($schedule) use ($agency, $dateInfo) {
-                                return $schedule['agency'] === $agency && 
+                            $dateSchedules = array_filter($schedules, function($schedule) use ($location, $dateInfo) {
+                                return $schedule['location_name'] === $location && 
                                     $schedule['date'] === $dateInfo['date'];
                             });
                             
                             $locationData[$dateInfo['date']] = array_values($dateSchedules);
                         }
                         
-                        $spreadsheetData['schedule_data'][$agency] = $locationData;
+                        $spreadsheetData['schedule_data'][$location] = $locationData;
                     }
 
                     echo json_encode([
@@ -2002,6 +2073,7 @@
                     ]);
 
                 } else {
+                    error_log("Agency Schedules Error: Invalid action specified");
                     echo json_encode([
                         'status' => false,
                         'message' => 'Invalid action specified'
@@ -2009,6 +2081,7 @@
                 }
 
             } catch (Exception $e) {
+                error_log("Agency Schedules Error: " . $e->getMessage());
                 echo json_encode([
                     'status' => false,
                     'message' => 'Error: ' . $e->getMessage()
@@ -2388,9 +2461,8 @@
         
     }
 
-    public function fetchAgencyStaffByLocation(){
-        $agency_id = $this->allmodels->sanitizeInput($_POST['agency_id']);
-        $response = $this->allmodels->getAgencyStaffByLocation($agency_id);
+    public function fetchAgencyStaffs(){
+        $response = $this->allmodels->getAgencyStaffs();
         echo json_encode($response);
     }
 
@@ -2410,8 +2482,8 @@
 
     public function processAgencyStaffSchedules(){
         $schedules = $_POST['schedules'] ?? []; // This will be a PHP array
-        $agencyId = $_POST['agency_id'] ?? 0;
-        $response = $this->allmodels->saveStaffAgencySchedules($schedules, $agencyId);
+        $locationId = $_POST['location_id'] ?? 0;
+        $response = $this->allmodels->saveStaffAgencySchedules($schedules, $locationId);
         echo json_encode($response);
     }
 

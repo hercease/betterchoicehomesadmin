@@ -156,6 +156,11 @@ switch ($url) {
             $viewController->TestingPage();
         }
         break;
+    case '/fetch_agency_staffs':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET'){
+            $modelController->fetchAgencyStaffs();
+        }
+        break;
     case '/agency_schedules':
         if ($_SERVER['REQUEST_METHOD'] === 'GET'){
             $viewController->showAllAgencySchedulePage($rootUrl);
@@ -326,11 +331,6 @@ switch ($url) {
             $modelController->processAgencystaffDeletion();
         }
         break;
-    case '/get_agency_staff_by_location':
-        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
-            $modelController->fetchAgencyStaffByLocation();
-        }
-        break;
     case '/process_agency_staff_schedules':
         if ($_SERVER['REQUEST_METHOD'] === 'POST'){
             $modelController->processAgencyStaffSchedules();
@@ -339,6 +339,11 @@ switch ($url) {
     case '/fetch_agency_schedules':
         if ($_SERVER['REQUEST_METHOD'] === 'POST'){
             $modelController->agencySchedules();
+        }
+        break;
+    case '/update_agency_schedule':
+        if ($_SERVER['REQUEST_METHOD'] === 'POST'){
+            $modelController->updateAgencySchedule();
         }
         break;
     

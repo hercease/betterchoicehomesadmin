@@ -585,10 +585,9 @@ class ViewController {
             if($fetchuserinfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'create.agencyschedule')){
 
                 $data = [
-					'all_location' => $all_locations,
+					'all_locations' => $all_locations,
                     'user_info' => $fetchuserinfo,
-                    'all_roles' => $all_roles,
-                    'all_agencies' => $this->allmodels->fetchAgencies(0)
+                    'all_roles' => $all_roles
 				];
 
                 require_once('app/views/create_agency_schedule.php');
@@ -621,10 +620,9 @@ class ViewController {
             if($fetchuserinfo['isAdmin'] > 0 || $this->allmodels->roleHasPermission($user_role, 'view.agencyschedule')){
 
                 $data = [
-					'all_location' => $all_locations,
+					'all_locations' => $all_locations,
                     'user_info' => $fetchuserinfo,
-                    'all_roles' => $all_roles,
-                    'all_agencies' => $this->allmodels->fetchAgencies(0)
+                    'all_roles' => $all_roles
 				];
 
                 require_once('app/views/agency_schedule.php');

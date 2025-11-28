@@ -2060,12 +2060,8 @@ class allmodels{
         }
     }
 
-     public function getAgencyStaffByLocation($agencyId) {
+     public function getAgencyStaffs() {
         try {
-            // Validate location ID
-            if (!is_numeric($agencyId) || $agencyId <= 0) {
-                throw new Exception("Invalid location ID");
-            }
 
             // SQL query to fetch staff for the specified location
             $sql = "
@@ -2073,15 +2069,13 @@ class allmodels{
                     s.id,
                     s.email,
                     CONCAT(s.firstname, ' ', s.lastname) AS staff_name,
-                    l.name AS agency_name
+                    a.name AS agency_name
                 FROM agency_staffs s
-                LEFT JOIN agencies l ON l.id = s.agency_id
-                WHERE s.agency_id = ? 
+                LEFT JOIN agencies a ON s.agency_id = a.id
                 ORDER BY s.firstname, s.lastname
             ";
 
             $stmt = $this->db->prepare($sql);
-            $stmt->bind_param('i', $agencyId);
             $stmt->execute();
             
             $result = $stmt->get_result();
@@ -2114,7 +2108,7 @@ class allmodels{
         }
     }
 
-    public function saveStaffAgencySchedules($schedules, $agencyId) {
+    public function saveStaffAgencySchedules($schedules, $locationId) {
         try {
 
             // Validate input - $schedules should already be a PHP array
@@ -2147,7 +2141,7 @@ class allmodels{
                     }
 
                     // Use the agency_id from parameter for consistency
-                    $agencyId = (int)$agencyId;
+                    $locationId = (int)$locationId;
 
                     // Validate staff exists
                     if (!$this->validateStaffExists($schedule['staff_id'])) {
@@ -2169,17 +2163,17 @@ class allmodels{
                     $payPerHour = (float)$schedule['pay_per_hour'];
 
                     // Get agency name
-                    $agencyName = $this->getAgencyName($agencyId);
-                    if (!$agencyName) {
-                        throw new Exception("Could not find agency name");
+                    $locationName = $this->getAgencyName($locationId);
+                    if (!$locationName) {
+                        throw new Exception("Could not find location name");
                     }
 
                     // Insert schedule
                     $sql = "
                         INSERT INTO agency_staffs_schedule (
                             staff_id,
-                            agency_id, 
-                            agency_name,
+                            location_id, 
+                            location_name,
                             start_time, 
                             end_time,
                             shift_type,
@@ -2199,8 +2193,8 @@ class allmodels{
                     $stmt->bind_param(
                         'iisssssds', 
                         $staffId,
-                        $agencyId, 
-                        $agencyName,
+                        $locationId, 
+                        $locationName,
                         $startTime,
                         $endTime,
                         $shiftType,
@@ -2261,10 +2255,10 @@ class allmodels{
     }
 
     // Helper function to get agency name
-    private function getAgencyName($agencyId) {
-        $sql = "SELECT name FROM agencies WHERE id = ?";
+    private function getAgencyName($locationId) {
+        $sql = "SELECT CONCAT(address, ' , ', city) AS name FROM locations WHERE id = ?";
         $stmt = $this->db->prepare($sql);
-        $stmt->bind_param('i', $agencyId);
+        $stmt->bind_param('i', $locationId);
         $stmt->execute();
         $result = $stmt->get_result();
         $row = $result->fetch_assoc();

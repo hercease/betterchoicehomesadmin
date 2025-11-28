@@ -310,13 +310,15 @@
                                     <input type="date" id="endDate" class="form-control" value="<?php echo date('Y-m-d', strtotime('+6 days')); ?>">
                                 </div>
                                 <div class="col-md-3">
-                                    <label class="form-label fw-bold">Agency</label>
-                                    <select id="agencyFilter" class="form-select">
-                                        <option value="">All Agencies</option>
-                                        <!-- Agencies will be populated dynamically -->
-                                        <?php foreach($data['all_agencies']['data'] as $agency): ?>
-                                                <option value="<?php echo $agency['id']; ?>"><?php echo $agency['name']; ?></option>
-                                        <?php endforeach; ?>
+                                    <label class="form-label fw-bold">Location</label>
+                                    <select id="locationFilter" class="form-select">
+                                        <option value="">All Locations</option>
+                                        <!-- Locations will be populated dynamically -->
+                                        <?php foreach($data['all_locations'] as $location){ ?>
+                                            <option value="<?php echo $location['id'] ?>">
+                                                <?php echo $location['address'].', '.$location['city'] ?>
+                                            </option>
+                                        <?php } ?>
                                     </select>
                                 </div>
                                 <div class="col-md-3 d-flex align-items-end">
@@ -385,6 +387,7 @@
                             </div>
                         </div>
                         <input type="hidden" name="schedule_id" id="editScheduleId">
+                        <input type="hidden" name="email" id="userEmail">
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -453,7 +456,7 @@
 
         function setupEventListeners() {
             $('#btnSearch').click(loadScheduleData);
-            $('#editScheduleForm').submit(updateSchedule);
+            //$('#editScheduleForm').submit(updateSchedule);
             
             // Shift type change handler
             $('select[name="shift_type"]').on('change', function() {
@@ -468,7 +471,7 @@
         function loadScheduleData() {
             const startDate = $('#startDate').val();
             const endDate = $('#endDate').val();
-            const agencyId = $('#agencyFilter').val();
+            const locationId = $('#locationFilter').val();
 
             if (!startDate || !endDate) {
                 showToast.error('Please select both start and end dates');
@@ -481,7 +484,7 @@
             formData.append('action', 'spreadsheet');
             formData.append('start_date', startDate);
             formData.append('end_date', endDate);
-            formData.append('agency', agencyId);
+            formData.append('location_id', locationId);
 
             fetch('fetch_agency_schedules', {
                 method: 'POST',
@@ -506,7 +509,7 @@
 
         function renderSpreadsheet() {
 
-            if (!scheduleData.dates || !scheduleData.agencies || !scheduleData.schedule_data) {
+            if (!scheduleData.dates || !scheduleData.locations || !scheduleData.schedule_data) {
                 $('#spreadsheetView').html('<div class="text-center py-4 text-muted">No schedule data available</div>');
                 return;
             }
@@ -532,15 +535,15 @@
             html += `</tr></thead><tbody>`;
 
             // Add agency rows
-            scheduleData.agencies.forEach(agency => {
+            scheduleData.locations.forEach(location => {
                 html += `<tr class="agency-row">`;
                 html += `<td class="agency-cell sticky-agency">
-                            <i class="fas fa-building me-1"></i>${agency}
+                            <i class="fas fa-building me-1"></i>${location}
                          </td>`;
 
                 // Add schedule cells for each date
                 scheduleData.dates.forEach(dateInfo => {
-                    const dateSchedules = scheduleData.schedule_data[agency]?.[dateInfo.date] || [];
+                    const dateSchedules = scheduleData.schedule_data[location]?.[dateInfo.date] || [];
 
                     html += `<td class="schedule-cell">`;
                     
@@ -628,12 +631,15 @@
                         <div class="col-12">
                             <h6 class="border-bottom pb-2">Staff Information</h6>
                             <p class="mb-1"><strong>Name:</strong> ${schedule.staff_name}</p>
-                            <p class="mb-1"><strong>Agency:</strong> ${schedule.agency}</p>
+                            <p class="mb-3"><strong>Email:</strong> ${schedule.email}</p>
+                        </div>
                         </div>
                         <div class="col-12">
                             <h6 class="border-bottom pb-2">Schedule Details</h6>
-                            <p class="mb-1"><strong>Date:</strong> ${new Date(schedule.date).toLocaleDateString()}</p>
+                            <p class="mb-1"><strong>Schedule Location:</strong> ${schedule.location_name}</p>
+                            <p class="mb-1"><strong>Schedule Date:</strong> ${new Date(schedule.date).toLocaleDateString()}</p>
                             <p class="mb-1"><strong>Time:</strong> ${schedule.start_time} - ${schedule.end_time}</p>
+                            <p class="mb-1"><strong>Pay Per Hour (CAD):</strong> ${schedule.pay_per_hour}</p>
                             <p class="mb-1"><strong>Status:</strong> <span class="badge ${getStatusClass(schedule.status).class}">${schedule.status}</span></p>
                         </div>
                     </div>
@@ -662,13 +668,25 @@
             
             // This would typically fetch schedule details from an API
             const schedule = findScheduleById(scheduleId);
+
+            console.log('Editing schedule:', schedule);
             
             hideLoader();
+
             if (schedule) {
                 // Populate the edit form
                 $('#editScheduleId').val(schedule.id);
                 $('input[name="start_time"]').val(schedule.start_time.replace(' AM', '').replace(' PM', ''));
                 $('input[name="end_time"]').val(schedule.end_time.replace(' AM', '').replace(' PM', ''));
+                $('input[name="pay_per_hour"]').val(schedule.pay_per_hour || '');
+                $('select[name="shift_type"]').val(schedule.shift_type || 'day').trigger('change');
+                $('#userEmail').val(schedule.email || '');
+                if(schedule.shift_type === 'overnight'){
+                    $('.overnight-type').removeClass('d-none');
+                } else {
+                    $('.overnight-type').addClass('d-none');
+                }
+                $('select[name="overnight_type"]').val(schedule.overnight_type || 'rest').trigger('change');
                 // Note: You may need additional API calls to get pay_per_hour and shift_type
                 
                 $('#editScheduleModal').modal('show');
@@ -677,23 +695,122 @@
             }
         }
 
-        function updateSchedule(e) {
+        $('#editScheduleForm').on('submit', function(e) {
             e.preventDefault();
-            const scheduleId = $('#editScheduleId').val();
+            console.log(e.target);
+            showUpdateWarning(e.target);
+        });
+
+        function showUpdateWarning(form) {
+            // Show confirmation dialog using izitoast
+            iziToast.question({
+                timeout: 20000, // 20 seconds timeout
+                close: false,
+                overlay: true,
+                displayMode: 'once',
+                id: 'question',
+                zindex: 9999,
+                title: 'Confirm Update',
+                message: 'Are you sure you want to update this schedule?',
+                position: 'center',
+                buttons: [
+                    ['<button><b>YES</b></button>', function (instance, toast) {
+                        instance.hide({ transitionOut: 'fadeOut' }, toast, 'button');
+                        updateSchedule(form); // Proceed with update
+                    }, true],
+                    ['<button>NO</button>', function (instance, toast) {
+                        instance.hide({ transitionOut: 'fadeOut' }, toast, 'button');
+                    }]
+                ],
+                onClosing: function(instance, toast, closedBy){
+                    console.info('Closing | closedBy: ' + closedBy);
+                },
+                onClosed: function(instance, toast, closedBy){
+                    console.info('Closed | closedBy: ' + closedBy);
+                }
+            });
+        }
+
+        function updateSchedule(form) {
+            console.log('Form element:', form);
             
+            const formData = new FormData(form);
+            const data = {};
+            
+            // Debug: Log all form data
+            console.log('=== FORM DATA ENTRIES ===');
+            for (let [key, value] of formData.entries()) {
+                //console.log(`${key}: ${value}`);
+                data[key] = value;
+            }
+            
+            const scheduleId = data.schedule_id;
+            
+            //return; // Remove this line to proceed with the update
+
+            if (!scheduleId) {
+                iziToast.error({
+                    title: 'Error',
+                    message: 'Schedule ID is required',
+                    position: 'topRight'
+                });
+                return;
+            }
+            
+            // Show loading toast
             showLoader('Updating schedule...');
             
-            const formData = new FormData(this);
-            formData.append('schedule_id', scheduleId);
+            // Use URLSearchParams for better compatibility
+            const urlParams = new URLSearchParams();
+            for (let [key, value] of formData.entries()) {
+                urlParams.append(key, value);
+            }
             
-            // This would typically send the update to your backend
-            setTimeout(() => {
+            fetch('update_agency_schedule', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: urlParams
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                // Hide loading toast
                 hideLoader();
-                showToast.success('Schedule updated successfully');
-                $('#editScheduleModal').modal('hide');
-                loadScheduleData(); // Reload the data
-            }, 1000);
+                
+                if (data.status) {
+                    iziToast.success({
+                        title: 'Success',
+                        message: 'Schedule updated successfully',
+                        position: 'topRight'
+                    });
+                    $('#editScheduleModal').modal('hide');
+                    loadScheduleData();
+                } else {
+                    iziToast.error({
+                        title: 'Error',
+                        message: data.message || 'Failed to update schedule',
+                        position: 'topRight'
+                    });
+                }
+            })
+            .catch(error => {
+                // Hide loading toast
+                hideLoader();
+                console.error('Update error:', error);
+                iziToast.error({
+                    title: 'Network Error',
+                    message: 'Network error occurred while updating schedule',
+                    position: 'topRight'
+                });
+            });
         }
+
 
         function deleteSchedule(scheduleId, event) {
             event.stopPropagation(); // Prevent triggering the card click

@@ -211,18 +211,20 @@
 
                 <!-- Schedule Configuration -->
                 <div class="card mb-4">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="mb-0"><i class="fas fa-cog me-2"></i>Schedule Configuration</h5>
+                    <div class="card-header bg-primary text-light">
+                        <h5 class="mb-0 text-white"><i class="fas fa-cog me-2"></i>Schedule Configuration</h5>
                     </div>
                     <div class="card-body">
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label fw-bold">Location</label>
-                                <select class="form-select" id="agencySelect" required>
+                                <select class="form-select" id="locationSelect" required>
                                     <option value="">Select Location</option>
-                                    <?php foreach($data['all_agencies']['data'] as $agency): ?>
-                                        <option value="<?php echo $agency['id']; ?>"><?php echo $agency['name']; ?></option>
-                                    <?php endforeach; ?>
+                                    <?php foreach($data['all_locations'] as $location){ ?>
+                                        <option value="<?php echo $location['id'] ?>">
+                                            <?php echo $location['address'].', '.$location['city'] ?>
+                                        </option>
+                                    <?php } ?>
                                 </select>
                             </div>
                             <div class="col-md-3">
@@ -301,12 +303,12 @@
         });
 
         function generateSchedules() {
-            const agencyId = $('#agencySelect').val();
+            const locationId = $('#locationSelect').val();
             const startDate = $('#startDate').val();
             const endDate = $('#endDate').val();
 
             // Validation
-            if (!agencyId) {
+            if (!locationId) {
                 showToast.error('Please select a location');
                 return;
             }
@@ -327,10 +329,8 @@
             showLoader('Loading staff and generating schedules...');
 
             // Fetch staff for the selected location
-            fetch('get_agency_staff_by_location', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams(`agency_id=${agencyId}`)
+            fetch('fetch_agency_staffs', {
+                method: 'GET',
             })
             .then(response => response.json())
             .then(data => {
@@ -339,7 +339,7 @@
                     const dateRange = getDateRange(start, end);
                     const locationName = $('#agencySelect option:selected').text();
                     
-                    renderSchedules(staffList, dateRange, locationName, agencyId);
+                    renderSchedules(staffList, dateRange, locationName, locationId);
                     showToast.success(`Generated schedules for ${staffList.length} staff members across ${dateRange.length} days`);
                     hideLoader();
                 } else {
@@ -375,7 +375,7 @@
                     <div class="empty-state">
                         <i class="fas fa-users-slash"></i>
                         <h4>No Staff Found</h4>
-                        <p class="text-muted">No staff members are assigned to this location.</p>
+                        <p class="text-muted">No staff members are available</p>
                     </div>
                 `);
                 return;
@@ -601,7 +601,7 @@
 
             // Prepare form data
             const formData = new FormData();
-            formData.append('agency_id', $('#agencySelect').val());
+            formData.append('location_id', $('#locationSelect').val());
 
             schedulesToSave.forEach((schedule, index) => {
                 // Append each field with array notation
