@@ -632,7 +632,10 @@
                                             </button>
                                             <ul class="dropdown-menu dropdown-menu-end">
                                                 <li><a class="dropdown-item" href="javascript:void(0);" onclick="editUser(${member.id}, '${member.firstname}', '${member.lastname}', '${member.email}', '${member.role}', '${member.location}')">
-                                                    <i class="fas fa-edit me-2"></i>Edit
+                                                    <i class="fas fa-edit me-2"></i> Quick Edit
+                                                </a></li>
+                                                <li><a class="dropdown-item" href="/editstaffprofile/${member.id}">
+                                                    <i class="fas fa-edit me-2"></i> Update Profile
                                                 </a></li>
                                                 <li><a class="dropdown-item" href="/userdetails/${member.id}">
                                                     <i class="fas fa-info-circle me-2"></i>Details

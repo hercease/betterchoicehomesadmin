@@ -50,6 +50,12 @@ switch ($url) {
             $viewController->showUserDetailsPage($userId,$rootUrl);
         }
         break;
+    case (preg_match('/^\/editstaffprofile\/(\d+)$/', $url, $matches) ? '/editstaffprofile/' . $matches[1] : null):
+        if ($_SERVER['REQUEST_METHOD'] === 'GET') {
+            $userId = $matches[1];
+            $viewController->showEditStaffProfilePage($userId,$rootUrl);
+        }
+        break;
     case '/createlocation':
         if ($_SERVER['REQUEST_METHOD'] === 'GET') {
             $viewController->showCreateLocationPage($rootUrl);

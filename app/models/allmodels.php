@@ -1395,8 +1395,6 @@ class allmodels{
 
                 $fetch_document_types = $this->getDocuments();
 
-
-
                 $expectedDocs = [
                     'education_doc'           => 'Education Document (DSW/SSW/BSW)',
                     'driver_licence_frontpage' => 'Driver Licence (Front Page)',

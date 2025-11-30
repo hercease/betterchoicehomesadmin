@@ -2101,7 +2101,7 @@
             // Use default timezone or fallback
             date_default_timezone_set($_SESSION['timezone'] ?? 'America/Toronto');
 
-            $email = $_SESSION['better_email'];
+            $email = $_POST['id'] ?? $_SESSION['better_email'];
 
             if(!$this->allmodels->getUserInfo($email)){
                 throw new Exception("User not found");
@@ -2229,8 +2229,8 @@
             }
 
             $date = date("Y-m-d H:i:s");
-
-            $this->allmodels->logActivity($userinfo['email'], $user_id, 'update-profile', 'User updated their profile', $date);
+            $comment = isset($_POST['id']) && $_POST['id'] ? $_SESSION['better_email'] .' updated ' . $userinfo['email'] . ' profile' : 'User updated their profile';
+            $this->allmodels->logActivity($userinfo['email'], $user_id, 'update-profile', $comment, $date);
 
             $this->db->commit();
 

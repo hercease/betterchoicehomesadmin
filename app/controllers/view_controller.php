@@ -377,6 +377,40 @@ class ViewController {
         }
     }
 
+    public function showEditStaffProfilePage($userId,$rootUrl){
+
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+        if (isset($_SESSION['better_email'])){
+
+            $email = $_SESSION['better_email'];
+            $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
+            date_default_timezone_set($timezone);
+            $fetchadmininfo = $this->allmodels->getUserInfo($userId);
+            $fetch_all_roles = $this->allmodels->fetchAllRoles()['roles'];
+            $role_tags = array_column($fetch_all_roles, 'tag');
+
+            $role = ['hr', 'manager', 'accountant', 'scheduler', 'dos', 'super-admin'];
+
+            if($fetchadmininfo['isAdmin'] > 0 || in_array($fetchadmininfo['role'], $role_tags)){
+
+                $data = [
+                    "user_info" => $fetchadmininfo
+                ];
+
+                require_once('app/views/edit_staff_profile.php');
+
+            } else { 
+				$this->forbiddenPage();
+			}
+
+        } else {
+            require_once('app/views/login.php');
+        }
+    }
+
     public function showAllSchedulePage($rootUrl){
       if (session_status() === PHP_SESSION_NONE) {
                 session_start();
