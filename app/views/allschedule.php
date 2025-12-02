@@ -1301,6 +1301,11 @@
                 if (data.status) {
                     const schedule = data.data;
                     const scheduleDate = new Date(schedule.schedule_date);
+                    scheduleDate.setHours(0, 0, 0, 0); // Reset time to midnight
+            
+                    // Create today's date without time for comparison
+                    const today = new Date();
+                    today.setHours(0, 0, 0, 0);
 
                     
                     // Calculate scheduled hours (end_time - start_time)
@@ -1316,7 +1321,7 @@
                         status = 'completed';
                     } else if (schedule.clockin && !schedule.clockout) {
                         status = 'ongoing';
-                    } else if (new Date() > scheduleDate && !schedule.clockin && !schedule.clockout) {
+                    } else if (today > scheduleDate && !schedule.clockin && !schedule.clockout) {
                         status = 'missed';
                     }
                     
