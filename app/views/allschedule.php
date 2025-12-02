@@ -1300,6 +1300,8 @@
                 hideLoader();
                 if (data.status) {
                     const schedule = data.data;
+                    const scheduleDate = new Date(schedule.schedule_date);
+
                     
                     // Calculate scheduled hours (end_time - start_time)
                     const scheduledHours = calculateTimeDifference(schedule.start_time, schedule.end_time);
@@ -1314,7 +1316,7 @@
                         status = 'completed';
                     } else if (schedule.clockin && !schedule.clockout) {
                         status = 'ongoing';
-                    } else if (!schedule.clockin && !schedule.clockout) {
+                    } else if (new Date() > scheduleDate && !schedule.clockin && !schedule.clockout) {
                         status = 'missed';
                     }
                     

@@ -2359,7 +2359,7 @@
 
         $response = $this->allmodels->getScheduleById($scheduleId);
 
-        error_log("Controller Get Schedule Details: Schedule ID: $scheduleId, Response: " . json_encode($response));
+        //error_log("Controller Get Schedule Details: Schedule ID: $scheduleId, Response: " . json_encode($response));
 
         echo json_encode($response);
         
