@@ -1306,7 +1306,9 @@
                     // Create today's date without time for comparison
                     const today = new Date();
                     today.setHours(0, 0, 0, 0);
-
+                    
+                    console.log('Schedule Date:', scheduleDate);
+                    console.log('Today:', today);
                     
                     // Calculate scheduled hours (end_time - start_time)
                     const scheduledHours = calculateTimeDifference(schedule.start_time, schedule.end_time);
@@ -1352,7 +1354,7 @@
                                 <p class="mb-1 small"><strong>Scheduled Hours:</strong> ${scheduledHours.toFixed(2)}h</p>
                                 <p class="mb-1 small"><strong>Location:</strong> ${schedule.location_name}</p>
                                 <p class="mb-1 small"><strong>Shift Type:</strong> ${schedule.shift_type || 'N/A'}</p>
-                                ${schedule.overnight_type ? `<p class="mb-1 small"><strong>Overnight Type:</strong> ${schedule.overnight_type}</p>` : ''}
+                                ${schedule.overnight_type === 'overnight' ? `<p class="mb-1 small"><strong>Overnight Type:</strong> ${schedule.overnight_type}</p>` : ''}
                                 <p class="mb-1 small"><strong>Status:</strong> <span class="badge ${getStatusClass(status).class}">${status}</span></p>
                             </div>
                             <div class="col-12">
