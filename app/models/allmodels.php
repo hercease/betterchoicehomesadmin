@@ -472,7 +472,7 @@ class allmodels{
             if ($shiftType === 'overnight' && !empty($schedule['overnight_type'])) {
                 $shiftType .= ' (' . $schedule['overnight_type'] . ')';
             }
-            $hours = (strtotime($schedule['end_time']) - strtotime($schedule['start_time'])) / 3600;
+            $hours = $this->alwaysPositive(strtotime($schedule['end_time']) - strtotime($schedule['start_time'])) / 3600;
             $earnings = $hours * $schedule['pay_per_hour'];
     
             $cards .= "
