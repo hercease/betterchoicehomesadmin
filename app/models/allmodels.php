@@ -317,6 +317,10 @@ class allmodels{
         !empty($token) && $this->sendPushToMobile($token, 'Schedule Update', 'You have a new schedule appointment.'); 
     }
 
+    public function alwaysPositive($number) {
+        return abs($number);
+    }
+
     private function prepareEmailTemplate($user, $schedules) {
         $scheduleRows = '';
         $totalHours = 0;
@@ -333,7 +337,7 @@ class allmodels{
             }
     
             // Calculate hours and earnings
-            $hours = (strtotime($schedule['end_time']) - strtotime($schedule['start_time'])) / 3600;
+            $hours = $this->alwaysPositive(strtotime($schedule['end_time']) - strtotime($schedule['start_time'])) / 3600;
             $earnings = $hours * $schedule['pay_per_hour'];
             
             $totalHours += $hours;
