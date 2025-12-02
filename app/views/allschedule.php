@@ -1300,7 +1300,22 @@
                 hideLoader();
                 if (data.status) {
                     const schedule = data.data;
-                    const scheduleDate = new Date(schedule.schedule_date);
+
+                    // FIX: Properly parse backend date
+                    function parseBackendDate(dateStr) {
+                        if (!dateStr) return new Date();
+                        
+                        // Method 1: Add local time component
+                        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                            return new Date(dateStr + 'T00:00:00');
+                        }
+                        
+                        // Method 2: Split and reconstruct (more reliable)
+                        const [year, month, day] = dateStr.split('-').map(Number);
+                        return new Date(year, month - 1, day);
+                    }
+
+                    const scheduleDate = parseBackendDate(schedule.schedule_date);
                     scheduleDate.setHours(0, 0, 0, 0); // Reset time to midnight
             
                     // Create today's date without time for comparison
@@ -1309,6 +1324,16 @@
                     
                     console.log('Schedule Date:', scheduleDate);
                     console.log('Today:', today);
+
+                    function formatDateForDisplay(date) {
+                        const options = { 
+                            weekday: 'short', 
+                            year: 'numeric', 
+                            month: 'long', 
+                            day: 'numeric' 
+                        };
+                        return date.toLocaleDateString('en-CA', options);
+                    }
                     
                     // Calculate scheduled hours (end_time - start_time)
                     const scheduledHours = calculateTimeDifference(schedule.start_time, schedule.end_time);
@@ -1349,7 +1374,7 @@
                             </div>
                             <div class="col-12">
                                 <h6 class="border-bottom pb-1" style="font-size: 0.9rem;">Schedule Details</h6>
-                                <p class="mb-1 small"><strong>Date:</strong> ${new Date(schedule.schedule_date).toLocaleDateString()}</p>
+                                <p class="mb-1 small"><strong>Date:</strong> ${formatDateForDisplay(scheduleDate)}</p>
                                 <p class="mb-1 small"><strong>Time:</strong> ${startTimeFormatted} - ${endTimeFormatted}</p>
                                 <p class="mb-1 small"><strong>Scheduled Hours:</strong> ${scheduledHours.toFixed(2)}h</p>
                                 <p class="mb-1 small"><strong>Location:</strong> ${schedule.location_name}</p>
