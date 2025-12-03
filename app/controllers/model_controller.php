@@ -1568,8 +1568,8 @@
                     $totalMinutes += abs($row['minutes_worked']);
                     
                     // Format hours worked
-                    $hours = floor($row['minutes_worked'] / 60);
-                    $minutes = $row['minutes_worked'] % 60;
+                    $hours = floor(abs($row['minutes_worked']) / 60);
+                    $minutes = abs($row['minutes_worked']) % 60;
                     $hoursWorked = sprintf("%dh %02dm", $hours, $minutes);
                     
                     // Calculate pay for this shift
