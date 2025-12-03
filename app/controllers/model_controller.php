@@ -2356,8 +2356,9 @@
     public function getScheduleDetails() {
 
         $scheduleId = isset($_POST['schedule_id']) ? (int)$_POST['schedule_id'] : 0;
+        $timezone = $_POST['timezone'] ?? 'America/Toronto';
 
-        $response = $this->allmodels->getScheduleById($scheduleId);
+        $response = $this->allmodels->getScheduleById($scheduleId, $timezone);
 
         //error_log("Controller Get Schedule Details: Schedule ID: $scheduleId, Response: " . json_encode($response));
 

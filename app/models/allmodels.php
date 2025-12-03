@@ -1544,8 +1544,13 @@ class allmodels{
         }
     }
 
-    public function getScheduleById($scheduleId)
+    public function getScheduleById($scheduleId, $timezone = null)
     {
+        // Set timezone if provided, otherwise use default
+        if ($timezone) {
+            date_default_timezone_set($timezone);
+        }
+        
         $stmt = $this->db->prepare("SELECT * FROM scheduling WHERE id = ?");
         if (!$stmt) {
             throw new Exception("Failed to prepare statement: " . $this->db->error);
@@ -1557,12 +1562,133 @@ class allmodels{
         $schedule = $result->fetch_assoc();
         $stmt->close();
 
+        if (!$schedule) {
+            return [
+                'status' => false,
+                'message' => 'Schedule not found'
+            ];
+        }
+
+        // Calculate scheduled hours
+        $scheduledHours = $this->calculateScheduledHours(
+            $schedule['schedule_date'], 
+            $schedule['start_time'], 
+            $schedule['end_time'], 
+            $schedule['shift_type'] ?? 'day'
+        );
+        
+        // Calculate status
+        $status = $this->calculateScheduleStatus(
+            $schedule['schedule_date'],
+            $schedule['start_time'],
+            $schedule['end_time'],
+            $schedule['shift_type'] ?? 'day',
+            $schedule['clockin'],
+            $schedule['clockout']
+        );
+        
+        // Calculate worked hours
+        $workedHours = 0;
+        if (!empty($schedule['clockin']) && !empty($schedule['clockout'])) {
+            $workedHours = $this->calculateTimeDifference($schedule['clockin'], $schedule['clockout']);
+        }
+        
+        // Calculate payments
+        $payPerHour = floatval($schedule['pay_per_hour'] ?? 0);
+        $expectedPay = $scheduledHours * $payPerHour;
+        $actualPay = $workedHours * $payPerHour;
+
+        // Format times for display
+        $schedule['scheduled_hours'] = round($scheduledHours, 2);
+        $schedule['worked_hours'] = round($workedHours, 2);
+        $schedule['expected_pay'] = round($expectedPay, 2);
+        $schedule['actual_pay'] = round($actualPay, 2);
+        $schedule['status'] = $status;
+        
+        // Format times for display
+        $schedule['start_time_formatted'] = !empty($schedule['start_time']) ? 
+            date('h:i A', strtotime($schedule['start_time'])) : 'N/A';
+        $schedule['end_time_formatted'] = !empty($schedule['end_time']) ? 
+            date('h:i A', strtotime($schedule['end_time'])) : 'N/A';
+        $schedule['clockin_formatted'] = !empty($schedule['clockin']) ? 
+            date('h:i A', strtotime($schedule['clockin'])) : 'Not clocked in';
+        $schedule['clockout_formatted'] = !empty($schedule['clockout']) ? 
+            date('h:i A', strtotime($schedule['clockout'])) : 'Not clocked out';
+        $schedule['schedule_date_formatted'] = !empty($schedule['schedule_date']) ? 
+            date('D, F j, Y', strtotime($schedule['schedule_date'])) : 'N/A';
+
         return [
             'status' => true,
             'data' => $schedule
         ];
+    }
 
-        return $schedule ?: null;
+    private function calculateScheduledHours($scheduleDate, $startTime, $endTime, $shiftType = 'day')
+    {
+        if (empty($scheduleDate) || empty($startTime) || empty($endTime)) {
+            return 0;
+        }
+        
+        // Create start datetime
+        $startDateTime = new DateTime($scheduleDate . ' ' . $startTime);
+        
+        // Create end datetime - add 1 day for overnight shifts
+        $endDateTime = new DateTime($scheduleDate . ' ' . $endTime);
+        if ($shiftType === 'overnight') {
+            $endDateTime->modify('+1 day');
+        }
+        
+        // Calculate difference in hours
+        $interval = $startDateTime->diff($endDateTime);
+        $hours = $interval->h + ($interval->i / 60) + ($interval->s / 3600);
+        
+        return $hours;
+    }
+
+    private function calculateScheduleStatus($scheduleDate, $startTime, $endTime, $shiftType, $clockin, $clockout)
+    {
+        $now = new DateTime();
+        
+        // Check if completed
+        if (!empty($clockin) && !empty($clockout)) {
+            return 'completed';
+        }
+        
+        // Check if ongoing
+        if (!empty($clockin) && empty($clockout)) {
+            return 'ongoing';
+        }
+        
+        // Check if missed (no clockin/clockout and shift has ended)
+        if (empty($clockin) && empty($clockout)) {
+            // Calculate shift end time
+            $shiftEndTime = new DateTime($scheduleDate . ' ' . $endTime);
+            if ($shiftType === 'overnight') {
+                $shiftEndTime->modify('+1 day');
+            }
+            
+            // Check if shift end time has passed
+            if ($now > $shiftEndTime) {
+                return 'missed';
+            }
+        }
+        
+        return 'scheduled';
+    }
+
+    private function calculateTimeDifference($startTime, $endTime)
+    {
+        if (empty($startTime) || empty($endTime)) {
+            return 0;
+        }
+        
+        $start = new DateTime($startTime);
+        $end = new DateTime($endTime);
+        
+        $interval = $start->diff($end);
+        $hours = $interval->h + ($interval->i / 60) + ($interval->s / 3600);
+        
+        return $hours;
     }
 
     public function getDocuments() {

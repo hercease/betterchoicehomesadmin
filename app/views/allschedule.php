@@ -1287,88 +1287,26 @@
         }
 
         const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        console.log('User Timezone:', timezone);
+        //console.log('User Timezone:', timezone);
 
         function showScheduleDetails(scheduleId) {
-
             showLoader('Loading schedule details...');
+            
+            // Get user timezone
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             
             fetch('get_schedule_details', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: new URLSearchParams(`schedule_id=${scheduleId}`).toString()
+                body: new URLSearchParams(`schedule_id=${scheduleId}&timezone=${timezone}`).toString()
             })
             .then(response => response.json())
             .then(data => {
                 console.log('Schedule details response:', data);
                 hideLoader();
+                
                 if (data.status) {
                     const schedule = data.data;
-
-                    // FIX: Properly parse backend date
-                    function parseBackendDate(dateStr) {
-                        if (!dateStr) return new Date();
-                        
-                        // Method 1: Add local time component
-                        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
-                            return new Date(dateStr + 'T00:00:00');
-                        }
-                        
-                        // Method 2: Split and reconstruct (more reliable)
-                        const [year, month, day] = dateStr.split('-').map(Number);
-                        return new Date(year, month - 1, day);
-                    }
-
-                    const scheduleDate = parseBackendDate(schedule.schedule_date);
-                    scheduleDate.setHours(0, 0, 0, 0); // Reset time to midnight
-            
-                    // Create today's date without time for comparison
-                    const today = new Date();
-                    today.setHours(0, 0, 0, 0);
-                    
-                    console.log('Schedule Date:', scheduleDate);
-                    console.log('Today:', today);
-
-                    function formatDateForDisplay(date) {
-                        const options = { 
-                            weekday: 'short', 
-                            year: 'numeric', 
-                            month: 'long', 
-                            day: 'numeric' 
-                        };
-                        return date.toLocaleDateString('en-CA', options);
-                    }
-                    
-                    // Calculate scheduled hours (end_time - start_time)
-                    const scheduledHours = calculateTimeDifference(schedule.start_time, schedule.end_time);
-                    
-                    // Calculate worked hours (clockout - clockin) if both exist
-                    let workedHours = 0;
-                    let actualPay = 0;
-                    let status = 'scheduled';
-                    
-                    if (schedule.clockin && schedule.clockout) {
-                        workedHours = calculateTimeDifference(schedule.clockin, schedule.clockout);
-                        status = 'completed';
-                    } else if (schedule.clockin && !schedule.clockout) {
-                        status = 'ongoing';
-                    } else if (today > scheduleDate && !schedule.clockin && !schedule.clockout) {
-                        status = 'missed';
-                    }
-                    
-                    // Calculate actual pay (worked hours * pay_per_hour)
-                    if (workedHours > 0 && schedule.pay_per_hour) {
-                        actualPay = workedHours * parseFloat(schedule.pay_per_hour);
-                    }
-                    
-                    // Calculate expected pay (scheduled hours * pay_per_hour)
-                    const expectedPay = scheduledHours * parseFloat(schedule.pay_per_hour || 0);
-                    
-                    // Format times for display
-                    const startTimeFormatted = formatTimeForDisplay(schedule.start_time);
-                    const endTimeFormatted = formatTimeForDisplay(schedule.end_time);
-                    const clockinFormatted = schedule.clockin ? formatTimeForDisplay(schedule.clockin) : 'Not clocked in';
-                    const clockoutFormatted = schedule.clockout ? formatTimeForDisplay(schedule.clockout) : 'Not clocked out';
                     
                     const detailsHtml = `
                         <div class="row g-2">
@@ -1378,25 +1316,24 @@
                             </div>
                             <div class="col-12">
                                 <h6 class="border-bottom pb-1" style="font-size: 0.9rem;">Schedule Details</h6>
-                                <p class="mb-1 small"><strong>Date:</strong> ${formatDateForDisplay(scheduleDate)}</p>
-                                <p class="mb-1 small"><strong>Time:</strong> ${startTimeFormatted} - ${endTimeFormatted}</p>
-                                <p class="mb-1 small"><strong>Scheduled Hours:</strong> ${scheduledHours.toFixed(2)}h</p>
+                                <p class="mb-1 small"><strong>Date:</strong> ${schedule.schedule_date_formatted}</p>
+                                <p class="mb-1 small"><strong>Time:</strong> ${schedule.start_time_formatted} - ${schedule.end_time_formatted}</p>
+                                <p class="mb-1 small"><strong>Shift Type:</strong> ${schedule.shift_type || 'day'}</p>
+                                <p class="mb-1 small"><strong>Scheduled Hours:</strong> ${schedule.scheduled_hours}h</p>
                                 <p class="mb-1 small"><strong>Location:</strong> ${schedule.location_name}</p>
-                                <p class="mb-1 small"><strong>Shift Type:</strong> ${schedule.shift_type || 'N/A'}</p>
-                                ${schedule.overnight_type === 'overnight' ? `<p class="mb-1 small"><strong>Overnight Type:</strong> ${schedule.overnight_type}</p>` : ''}
-                                <p class="mb-1 small"><strong>Status:</strong> <span class="badge ${getStatusClass(status).class}">${status}</span></p>
+                                <p class="mb-1 small"><strong>Status:</strong> <span class="badge ${getStatusClass(schedule.status).class}">${schedule.status}</span></p>
                             </div>
                             <div class="col-12">
                                 <h6 class="border-bottom pb-1" style="font-size: 0.9rem;">Time Tracking</h6>
-                                <p class="mb-1 small"><strong>Clock In:</strong> ${clockinFormatted}</p>
-                                <p class="mb-1 small"><strong>Clock Out:</strong> ${clockoutFormatted}</p>
-                                <p class="mb-1 small"><strong>Hours Worked:</strong> ${workedHours.toFixed(2)}h</p>
+                                <p class="mb-1 small"><strong>Clock In:</strong> ${schedule.clockin_formatted}</p>
+                                <p class="mb-1 small"><strong>Clock Out:</strong> ${schedule.clockout_formatted}</p>
+                                <p class="mb-1 small"><strong>Hours Worked:</strong> ${schedule.worked_hours}h</p>
                             </div>
                             <div class="col-12">
                                 <h6 class="border-bottom pb-1" style="font-size: 0.9rem;">Payment Information</h6>
                                 <p class="mb-1 small"><strong>Pay Rate:</strong> $${parseFloat(schedule.pay_per_hour || 0).toFixed(2)}/hour</p>
-                                <p class="mb-1 small"><strong>Expected Pay:</strong> $${expectedPay.toFixed(2)} CAD</p>
-                                <p class="mb-1 small"><strong>Actual Pay:</strong> $${actualPay.toFixed(2)} CAD</p>
+                                <p class="mb-1 small"><strong>Expected Pay:</strong> $${schedule.expected_pay} CAD</p>
+                                <p class="mb-1 small"><strong>Actual Pay:</strong> $${schedule.actual_pay} CAD</p>
                             </div>
                         </div>
                     `;
@@ -1409,6 +1346,7 @@
             .catch(error => {
                 hideLoader();
                 showToast.error('Network error occurred');
+                console.error('Error:', error);
             });
         }
 
