@@ -1618,8 +1618,8 @@
 
                 // Calculate total hours for each staff
                 foreach ($staffSchedules as $key => $staff) {
-                    $totalHours = floor($staff['total_minutes'] / 60);
-                    $totalMinutesRemainder = $staff['total_minutes'] % 60;
+                    $totalHours = floor(abs($staff['total_minutes']) / 60);
+                    $totalMinutesRemainder = abs($staff['total_minutes']) % 60;
                     $staffSchedules[$key]['total_hours'] = sprintf("%dh %02dm", $totalHours, $totalMinutesRemainder);
                     $staffSchedules[$key]['total_pay'] = abs(number_format($staff['total_pay'], 2));
                 }
