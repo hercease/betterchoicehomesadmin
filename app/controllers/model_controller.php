@@ -1628,8 +1628,8 @@
                 $groupedSchedules = array_values($staffSchedules);
 
                 // Format total hours
-                $totalHours = floor($totalMinutes / 60);
-                $totalMinutesRemainder = $totalMinutes % 60;
+                $totalHours = abs(floor($totalMinutes / 60));
+                $totalMinutesRemainder = abs($totalMinutes) % 60;
                 $totalHoursFormatted = sprintf("%dh %02dm", $totalHours, $totalMinutesRemainder);
 
                 // Return JSON response
@@ -1644,7 +1644,7 @@
                         'perPage' => $perPage
                     ],
                     'summary' => [
-                        'totalHours' => abs($totalHoursFormatted),
+                        'totalHours' => $totalHoursFormatted,
                         'totalRecords' => $totalRecords
                     ]
                 ]);
