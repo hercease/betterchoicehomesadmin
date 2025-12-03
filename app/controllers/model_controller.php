@@ -1565,7 +1565,7 @@
 
                 while ($row = $result->fetch_assoc()) {
                     $staffKey = $row['staff_email'];
-                    $totalMinutes += $row['minutes_worked'];
+                    $totalMinutes += abs($row['minutes_worked']);
                     
                     // Format hours worked
                     $hours = floor($row['minutes_worked'] / 60);
@@ -1590,9 +1590,9 @@
                         'actual_time' => ($row['clockin'] ? date('g:i A', strtotime($row['clockin'])) : 'N/A') . ' - ' . 
                                         ($row['clockout'] ? date('g:i A', strtotime($row['clockout'])) : 'N/A'),
                         'shift_type' => $row['shift_type'],
-                        'pay_per_hour' => abs($row['pay_per_hour']),
+                        'pay_per_hour' => $row['pay_per_hour'],
                         'overnight_type' => $row['overnight_type'],
-                        'hours_worked' => abs($hoursWorked),
+                        'hours_worked' => $hoursWorked,
                         'minutes_worked' => abs($row['minutes_worked']),
                         'pay' => abs(number_format($shiftPay, 2)),
                         'status' => $status
