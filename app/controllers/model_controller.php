@@ -1805,7 +1805,7 @@
             date_default_timezone_set($_POST['timezone'] ?? 'America/Toronto');
 
             try {
-                
+
                 if ($action === 'spreadsheet') {
                     $startDate = $_POST['start_date'] ?? date('Y-m-d');
                     $endDate = $_POST['end_date'] ?? date('Y-m-d', strtotime('+6 days'));
@@ -1834,6 +1834,7 @@
                         s.end_time,
                         s.clockin,
                         s.clockout,
+                        s.shift_type,
                         
                         -- Pretty time formats
                         DATE_FORMAT(s.start_time, '%h:%i %p') AS start_time_fmt,
