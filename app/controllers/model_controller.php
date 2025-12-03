@@ -1594,7 +1594,7 @@
                         'overnight_type' => $row['overnight_type'],
                         'hours_worked' => $hoursWorked,
                         'minutes_worked' => $row['minutes_worked'],
-                        'pay' => number_format($shiftPay, 2),
+                        'pay' => abs(number_format($shiftPay, 2)),
                         'status' => $status
                     ];
 
@@ -1621,7 +1621,7 @@
                     $totalHours = floor($staff['total_minutes'] / 60);
                     $totalMinutesRemainder = $staff['total_minutes'] % 60;
                     $staffSchedules[$key]['total_hours'] = sprintf("%dh %02dm", $totalHours, $totalMinutesRemainder);
-                    $staffSchedules[$key]['total_pay'] = number_format($staff['total_pay'], 2);
+                    $staffSchedules[$key]['total_pay'] = abs(number_format($staff['total_pay'], 2));
                 }
 
                 // Convert to indexed array for JSON
