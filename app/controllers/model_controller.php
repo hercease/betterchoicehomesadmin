@@ -1644,7 +1644,7 @@
                         'perPage' => $perPage
                     ],
                     'summary' => [
-                        'totalHours' => $totalHoursFormatted,
+                        'totalHours' => abs($totalHoursFormatted),
                         'totalRecords' => $totalRecords
                     ]
                 ]);
