@@ -1005,12 +1005,16 @@
         function loadScheduleData() {
 
             showLoader('Loading schedule data...');
+
+            const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
             
             const formData = new FormData();
             formData.append('action', 'spreadsheet');
             formData.append('start_date', formatDateForAPI(currentStartDate));
             formData.append('end_date', formatDateForAPI(currentEndDate));
             formData.append('location', $('#locationFilter').val());
+            formData.append('timezone', timezone);
+
 
             console.log('Loading data for:',{
                 start: formatDateForAPI(currentStartDate),
@@ -1286,7 +1290,6 @@
             }
         }
 
-        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
         //console.log('User Timezone:', timezone);
 
         function showScheduleDetails(scheduleId) {

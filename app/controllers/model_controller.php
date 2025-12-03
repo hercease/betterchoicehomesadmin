@@ -1800,9 +1800,12 @@
         }
 
        public function scheduleTesting(){
+
             $action = $_POST['action'] ?? '';
+            date_default_timezone_set($_POST['timezone'] ?? 'America/Toronto');
 
             try {
+                
                 if ($action === 'spreadsheet') {
                     $startDate = $_POST['start_date'] ?? date('Y-m-d');
                     $endDate = $_POST['end_date'] ?? date('Y-m-d', strtotime('+6 days'));
@@ -1871,14 +1874,7 @@
                     $schedules = [];
                     while ($row = $res->fetch_assoc()) {
                         // Determine status
-                        $status = 'scheduled';
-                        if ($row['clockin'] && $row['clockout']) {
-                            $status = 'completed';
-                        } elseif ($row['clockin']) {
-                            $status = 'ongoing';
-                        } elseif (!$row['clockin'] && date('Y-m-d') > $row['schedule_date']) {
-                            $status = 'missed';
-                        }
+                        $status = $this->allmodels->calculateScheduleStatus($row['schedule_date'], $row['start_time'], $row['end_time'], $row['shift_type'], $row['clockin'], $row['clockout']);
 
                         $scheduleItem = [
                             'id' => $row['id'],

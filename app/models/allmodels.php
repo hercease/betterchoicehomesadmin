@@ -1645,7 +1645,7 @@ class allmodels{
         return $hours;
     }
 
-    private function calculateScheduleStatus($scheduleDate, $startTime, $endTime, $shiftType, $clockin, $clockout)
+    public function calculateScheduleStatus($scheduleDate, $startTime, $endTime, $shiftType, $clockin, $clockout)
     {
         $now = new DateTime();
         
