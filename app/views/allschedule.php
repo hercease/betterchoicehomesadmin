@@ -1286,7 +1286,11 @@
             }
         }
 
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        console.log('User Timezone:', timezone);
+
         function showScheduleDetails(scheduleId) {
+
             showLoader('Loading schedule details...');
             
             fetch('get_schedule_details', {
