@@ -2558,6 +2558,84 @@
         echo json_encode($response);
     }
 
+    public function autoClockoutUsers() {
+        try {
+            // Set to Eastern US/Canada timezone
+            date_default_timezone_set('America/New_York'); // or 'America/Toronto'
+            
+            // Get current date and time in Eastern timezone
+            $currentDateTime = new DateTime();
+            $currentDate = $currentDateTime->format('Y-m-d');
+            $currentTime = $currentDateTime->format('H:i:s');
+            
+            // Find users clocked in but not clocked out
+            $query = "
+                SELECT id, schedule_date, start_time, end_time, shift_type, clockin
+                FROM scheduling 
+                WHERE clockin IS NOT NULL 
+                AND clockout IS NULL
+                ORDER BY schedule_date, start_time LIMIT 2
+            ";
+            
+            $stmt = $this->db->prepare($query);
+            if (!$stmt) {
+                throw new Exception("Failed to prepare query: " . $this->db->error);
+            }
+            
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $clockedOutCount = 0;
+            
+            while ($row = $result->fetch_assoc()) {
+                $scheduleDate = $row['schedule_date'];
+                $endTime = $row['end_time'];
+                $isOvernight = $row['shift_type'] === 'overnight';
+                
+                // For overnight shifts, add 1 day to schedule date
+                if ($isOvernight) {
+                    $scheduleDate = date('Y-m-d', strtotime($scheduleDate . ' +1 day'));
+                }
+                
+                // Create DateTime for scheduled end
+                $scheduledEnd = new DateTime($scheduleDate . ' ' . $endTime);
+                
+                // Check if current time is past scheduled end time
+                if ($currentDateTime > $scheduledEnd) {
+                    // Update clockout with scheduled end time
+                    $updateQuery = "
+                        UPDATE scheduling 
+                        SET clockout = ?
+                        WHERE id = ?
+                    ";
+                    
+                    $updateStmt = $this->db->prepare($updateQuery);
+                    if ($updateStmt) {
+                        // Use original schedule date for overnight shifts (not the +1 day)
+                        $updateStmt->bind_param(
+                            "si",
+                            $endTime, 
+                            $row['id']
+                        );
+                        
+                        if ($updateStmt->execute()) {
+                            $clockedOutCount++;
+                        }
+                        $updateStmt->close();
+                    }
+                }
+            }
+            
+            $stmt->close();
+            
+        } catch (Exception $e) {
+            error_log("Auto-clockout error: " . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Auto-clockout failed: ' . $e->getMessage()
+            ];
+        }
+    }
+
 
 }
 

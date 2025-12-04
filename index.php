@@ -172,6 +172,11 @@ switch ($url) {
             $viewController->showAllAgencySchedulePage($rootUrl);
         }
         break;
+    case '/auto_clockout_users':
+        if ($_SERVER['REQUEST_METHOD'] === 'GET'){
+            $modelController->autoClockoutUsers($rootUrl);
+        }
+        break;
     case '/handlelogin':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $modelController->handleLogin();
