@@ -1501,7 +1501,7 @@
                     $types .= 's';
                 }
 
-                // Prepare base query with FIXED time calculation for overnight shifts
+                // SIMPLIFIED query - no time calculations in SQL
                 $query = "SELECT 
                     u.firstname, 
                     u.lastname,
@@ -1514,24 +1514,7 @@
                     s.schedule_date, 
                     s.shift_type,
                     s.pay_per_hour,
-                    s.overnight_type,
-                    -- Calculate scheduled hours (always positive)
-                    CASE 
-                        WHEN s.shift_type = 'overnight' AND TIME(s.end_time) < TIME(s.start_time) 
-                        THEN TIMESTAMPDIFF(MINUTE, s.start_time, ADDTIME(DATE_ADD(s.schedule_date, INTERVAL 1 DAY), s.end_time))
-                        ELSE TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time)
-                    END AS scheduled_minutes,
-                    -- Calculate worked hours (handle overnight and ensure positive)
-                    CASE 
-                        WHEN s.clockin IS NOT NULL AND s.clockout IS NOT NULL 
-                        THEN 
-                            CASE 
-                                WHEN s.shift_type = 'overnight' AND TIME(s.clockout) < TIME(s.clockin)
-                                THEN TIMESTAMPDIFF(MINUTE, s.clockin, ADDTIME(DATE_ADD(s.schedule_date, INTERVAL 1 DAY), s.clockout))
-                                ELSE TIMESTAMPDIFF(MINUTE, s.clockin, s.clockout)
-                            END
-                        ELSE 0 
-                    END AS minutes_worked
+                    s.overnight_type
                 FROM scheduling s JOIN users u ON s.email = u.email";
 
                 // Add WHERE clauses if any
@@ -1577,16 +1560,54 @@
                 // Process results and group by staff
                 $staffSchedules = [];
                 $totalMinutesWorked = 0;
-                $totalMinutesScheduled = 0; // NEW: Track total scheduled minutes
-                $currentStaff = null;
+                $totalMinutesScheduled = 0;
+                
+                // Helper function to calculate minutes difference for overnight shifts
+                function calculateMinutesDifference($dateStr, $startTime, $endTime, $isOvernight = false) {
+                    $startDateTime = new DateTime($dateStr . ' ' . $startTime);
+                    $endDateTime = new DateTime($dateStr . ' ' . $endTime);
+                    
+                    // For overnight shifts where end time is earlier than start time
+                    if ($isOvernight && $endDateTime <= $startDateTime) {
+                        $endDateTime->modify('+1 day');
+                    }
+                    
+                    $interval = $startDateTime->diff($endDateTime);
+                    return ($interval->h * 60) + $interval->i;
+                }
 
                 while ($row = $result->fetch_assoc()) {
                     $staffKey = $row['staff_email'];
-                    $workedMinutes = max(0, $row['minutes_worked']); // Ensure non-negative
-                    $scheduledMinutes = max(0, $row['scheduled_minutes']); // Ensure non-negative
+                    $isOvernight = $row['shift_type'] === 'overnight';
+                    
+                    // Calculate scheduled minutes in PHP
+                    $scheduledMinutes = calculateMinutesDifference(
+                        $row['schedule_date'],
+                        $row['start_time'],
+                        $row['end_time'],
+                        $isOvernight
+                    );
+                    
+                    // Calculate worked minutes in PHP if clockin/clockout exists
+                    $workedMinutes = 0;
+                    if (!empty($row['clockin']) && !empty($row['clockout'])) {
+                        // Extract time part from datetime strings
+                        $clockinTime = date('H:i:s', strtotime($row['clockin']));
+                        $clockoutTime = date('H:i:s', strtotime($row['clockout']));
+                        
+                        $workedMinutes = calculateMinutesDifference(
+                            $row['schedule_date'],
+                            $clockinTime,
+                            $clockoutTime,
+                            $isOvernight
+                        );
+                        
+                        // Ensure worked minutes don't exceed scheduled minutes (for overtime tracking)
+                        $workedMinutes = max(0, $workedMinutes);
+                    }
                     
                     $totalMinutesWorked += $workedMinutes;
-                    $totalMinutesScheduled += $scheduledMinutes; // Add to total scheduled
+                    $totalMinutesScheduled += $scheduledMinutes;
                     
                     // Format worked hours
                     $workedHours = floor($workedMinutes / 60);
@@ -1603,9 +1624,9 @@
                     
                     // Determine status
                     $status = 'Pending';
-                    if ($row['clockin'] && $row['clockout']) {
+                    if (!empty($row['clockin']) && !empty($row['clockout'])) {
                         $status = 'Completed';
-                    } elseif ($row['clockin']) {
+                    } elseif (!empty($row['clockin'])) {
                         $status = 'In Progress';
                     }
                     
@@ -1613,15 +1634,15 @@
                         'location' => $row['location_name'],
                         'schedule_date' => date('D M jS', strtotime($row['schedule_date'])),
                         'scheduled_time' => date('g:i A', strtotime($row['start_time'])) . ' - ' . date('g:i A', strtotime($row['end_time'])),
-                        'actual_time' => ($row['clockin'] ? date('g:i A', strtotime($row['clockin'])) : 'N/A') . ' - ' . 
-                                        ($row['clockout'] ? date('g:i A', strtotime($row['clockout'])) : 'N/A'),
+                        'actual_time' => (!empty($row['clockin']) ? date('g:i A', strtotime($row['clockin'])) : 'N/A') . ' - ' . 
+                                        (!empty($row['clockout']) ? date('g:i A', strtotime($row['clockout'])) : 'N/A'),
                         'shift_type' => $row['shift_type'],
                         'pay_per_hour' => $row['pay_per_hour'],
                         'overnight_type' => $row['overnight_type'],
                         'hours_worked' => $hoursWorked,
                         'minutes_worked' => $workedMinutes,
-                        'hours_scheduled' => $hoursScheduled, // NEW: Add scheduled hours
-                        'minutes_scheduled' => $scheduledMinutes, // NEW: Add scheduled minutes
+                        'hours_scheduled' => $hoursScheduled,
+                        'minutes_scheduled' => $scheduledMinutes,
                         'pay' => number_format($shiftPay, 2),
                         'status' => $status
                     ];
@@ -1634,8 +1655,8 @@
                             'schedules' => [],
                             'total_hours_worked' => 0,
                             'total_minutes_worked' => 0,
-                            'total_hours_scheduled' => 0, // NEW: Track scheduled hours
-                            'total_minutes_scheduled' => 0, // NEW: Track scheduled minutes
+                            'total_hours_scheduled' => 0,
+                            'total_minutes_scheduled' => 0,
                             'total_pay' => 0
                         ];
                     }
@@ -1643,7 +1664,7 @@
                     // Add schedule to staff
                     $staffSchedules[$staffKey]['schedules'][] = $scheduleData;
                     $staffSchedules[$staffKey]['total_minutes_worked'] += $workedMinutes;
-                    $staffSchedules[$staffKey]['total_minutes_scheduled'] += $scheduledMinutes; // Add to staff scheduled
+                    $staffSchedules[$staffKey]['total_minutes_scheduled'] += $scheduledMinutes;
                     $staffSchedules[$staffKey]['total_pay'] += $shiftPay;
                 }
 
@@ -1671,7 +1692,7 @@
                 $totalWorkedMinutes = $totalMinutesWorked % 60;
                 $totalWorkedHoursFormatted = sprintf("%dh %02dm", $totalWorkedHours, $totalWorkedMinutes);
                 
-                // Format total scheduled hours (NEW)
+                // Format total scheduled hours
                 $totalScheduledHours = floor($totalMinutesScheduled / 60);
                 $totalScheduledMinutes = $totalMinutesScheduled % 60;
                 $totalScheduledHoursFormatted = sprintf("%dh %02dm", $totalScheduledHours, $totalScheduledMinutes);
@@ -1695,7 +1716,7 @@
                     ],
                     'summary' => [
                         'totalHoursWorked' => $totalWorkedHoursFormatted,
-                        'totalHoursScheduled' => $totalScheduledHoursFormatted, // NEW
+                        'totalHoursScheduled' => $totalScheduledHoursFormatted,
                         'totalRecords' => $totalRecords,
                         'efficiencyPercentage' => number_format($efficiencyPercentage, 1) . '%'
                     ]
