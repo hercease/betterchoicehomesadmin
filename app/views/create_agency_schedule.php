@@ -337,16 +337,15 @@
                 if (data.status) {
                     const staffList = data.data;
                     const dateRange = getDateRange(start, end);
-                    const locationName = $('#agencySelect option:selected').text();
+                    const locationName = $('#locationSelect option:selected').text();
                     
                     renderSchedules(staffList, dateRange, locationName, locationId);
                     showToast.success(`Generated schedules for ${staffList.length} staff members across ${dateRange.length} days`);
                     hideLoader();
                 } else {
                     showToast.error(data.message || 'Failed to load staff members');
-                renderEmptyState('No staff found for this location');
-                hideLoader();
-                return;
+                    renderEmptyState('No staff found for this location');
+                    hideLoader();
                 }
             })
             .catch(error => {
@@ -438,7 +437,7 @@
                                                data-date="${dateString}" 
                                                data-field="end_time">
                                     </div>
-                                    <div class="col-md-2">
+                                    <div class="col-md-3">
                                         <label class="form-label small fw-bold">Shift Type</label>
                                         <select class="form-select form-select-sm schedule-input shift-type" 
                                                 data-staff="${staff.id}" 
@@ -449,18 +448,7 @@
                                             <option value="overnight">Overnight</option>
                                         </select>
                                     </div>
-                                    <div class="col-md-2">
-                                        <label class="form-label small fw-bold">Pay Rate ($/hr)</label>
-                                        <input type="number" 
-                                               step="0.01" 
-                                               min="0"
-                                               class="form-control form-control-sm schedule-input" 
-                                               data-staff="${staff.id}" 
-                                               data-date="${dateString}" 
-                                               data-field="pay_per_hour"
-                                               placeholder="0.00">
-                                    </div>
-                                    <div class="col-md-2 overnight-options" style="display: none;">
+                                    <div class="col-md-3 overnight-options" style="display: none;">
                                         <label class="form-label small fw-bold">Overnight Type</label>
                                         <select class="form-select form-select-sm schedule-input" 
                                                 data-staff="${staff.id}" 
@@ -506,12 +494,11 @@
                     schedule = {
                         staff_id: staffId,
                         schedule_date: date,
-                        agency_id: $('#agencySelect').val(),
+                        location_id: $('#locationSelect').val(),
                         start_time: '',
                         end_time: '',
                         shift_type: 'day',
                         overnight_type: '',
-                        pay_per_hour: '0.00',
                         has_all_required_fields: false
                     };
                     schedules.push(schedule);
@@ -533,33 +520,6 @@
                 return;
             }
 
-            // Validate pay rates only for schedules that have all required fields
-            validSchedules.forEach(schedule => {
-                if (!schedule.pay_per_hour || parseFloat(schedule.pay_per_hour) <= 0) {
-                    showToast.error(`Invalid pay rate for staff ${schedule.staff_id} on ${schedule.schedule_date}`);
-                    hasErrors = true;
-                    
-                    // Highlight the pay rate input for this schedule
-                    $(`.schedule-input[data-staff="${schedule.staff_id}"][data-date="${schedule.schedule_date}"][data-field="pay_per_hour"]`)
-                        .addClass('is-invalid');
-                }
-            });
-
-            if (hasErrors) {
-                showToast.error('Please fix validation errors before saving');
-                return;
-            }
-
-            // Send only valid schedules to backend
-            const schedulesToSave = validSchedules.filter(schedule => 
-                schedule.pay_per_hour && parseFloat(schedule.pay_per_hour) > 0
-            );
-
-            if (schedulesToSave.length === 0) {
-                showToast.error('No valid schedules to save after validation');
-                return;
-            }
-
             // Show confirmation dialog
             iziToast.question({
                 timeout: false,
@@ -569,11 +529,11 @@
                 id: 'question',
                 zindex: 9999,
                 title: '<i class="fas fa-save me-2"></i> Confirm Schedule Creation',
-                message: `You are about to create <strong>${schedulesToSave.length} schedules</strong>.<br><br>
+                message: `You are about to create <strong>${validSchedules.length} schedules</strong>.<br><br>
                         <strong>Summary:</strong><br>
-                        • Complete schedules: ${schedulesToSave.length}<br>
-                        • Incomplete schedules: ${schedules.length - schedulesToSave.length}<br>
-                        • Agency: ${$('#agencySelect option:selected').text()}<br><br>
+                        • Complete schedules: ${validSchedules.length}<br>
+                        • Incomplete schedules: ${schedules.length - validSchedules.length}<br>
+                        • Location: ${$('#locationSelect option:selected').text()}<br><br>
                         Are you sure you want to proceed?`,
                 position: 'center',
                 backgroundColor: '#f8f9fa',
@@ -585,7 +545,7 @@
                         instance.hide({ transitionOut: 'fadeOut' }, toast, 'button');
                         
                         // Proceed with saving schedules
-                        proceedWithSaving(schedulesToSave, schedules.length);
+                        proceedWithSaving(validSchedules, schedules.length);
                         
                     }, true],
                     ['<button class="btn btn-secondary btn-sm">CANCEL</button>', function (instance, toast) {
@@ -607,12 +567,11 @@
                 // Append each field with array notation
                 formData.append(`schedules[${index}][staff_id]`, schedule.staff_id);
                 formData.append(`schedules[${index}][schedule_date]`, schedule.schedule_date);
-                formData.append(`schedules[${index}][agency_id]`, schedule.agency_id);
+                formData.append(`schedules[${index}][location_id]`, schedule.location_id);
                 formData.append(`schedules[${index}][start_time]`, schedule.start_time);
                 formData.append(`schedules[${index}][end_time]`, schedule.end_time);
                 formData.append(`schedules[${index}][shift_type]`, schedule.shift_type);
                 formData.append(`schedules[${index}][overnight_type]`, schedule.overnight_type || '');
-                formData.append(`schedules[${index}][pay_per_hour]`, schedule.pay_per_hour);
             });
 
             // Send to backend
@@ -660,7 +619,7 @@
                                     <button class="btn btn-primary me-2" onclick="location.reload()">
                                         <i class="fas fa-plus me-2"></i>Create More Schedules
                                     </button>
-                                    <button class="btn btn-outline-secondary" onclick="window.location.href='schedules'">
+                                    <button class="btn btn-outline-secondary" onclick="window.location.href='agency_schedules'">
                                         <i class="fas fa-calendar me-2"></i>View All Schedules
                                     </button>
                                 </div>
@@ -669,13 +628,13 @@
                     }, 1000);
                     
                 } else {
+
                     showToast.error(data.message || 'Failed to create schedules');
                     
                     // Highlight failed schedules if specific errors are returned
                     if (data.failed_schedules) {
                         data.failed_schedules.forEach(failed => {
-                            $(`.schedule-input[data-staff="${failed.staff_id}"][data-date="${failed.schedule_date}"]`)
-                                .addClass('is-invalid');
+                            $(`.schedule-input[data-staff="${failed.staff_id}"][data-date="${failed.schedule_date}"]`).addClass('is-invalid');
                         });
                     }
                     

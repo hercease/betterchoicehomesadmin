@@ -1414,9 +1414,9 @@
                     'leftAt'        => $formattedClockOut,
                     'hoursUsed'     => $hoursUsed,
                     'status'        => $statusValue,
-                    'shift_type'         => $row['shift_type'],
+                    'shift_type'    => $row['shift_type'],
                     'pay_per_hour'  => $row['pay_per_hour'],
-                    'overnight_type'  => $row['overnight_type'],
+                    'overnight_type'=> $row['overnight_type'],
                     'total_pay'     => $schedulePay // pay for THIS schedule only
                 ];
             }
@@ -1501,7 +1501,7 @@
                     $types .= 's';
                 }
 
-                // Prepare base query
+                // Prepare base query with FIXED time calculation for overnight shifts
                 $query = "SELECT 
                     u.firstname, 
                     u.lastname,
@@ -1515,7 +1515,23 @@
                     s.shift_type,
                     s.pay_per_hour,
                     s.overnight_type,
-                    TIMESTAMPDIFF(MINUTE, s.clockin, s.clockout) AS minutes_worked
+                    -- Calculate scheduled hours (always positive)
+                    CASE 
+                        WHEN s.shift_type = 'overnight' AND TIME(s.end_time) < TIME(s.start_time) 
+                        THEN TIMESTAMPDIFF(MINUTE, s.start_time, ADDTIME(DATE_ADD(s.schedule_date, INTERVAL 1 DAY), s.end_time))
+                        ELSE TIMESTAMPDIFF(MINUTE, s.start_time, s.end_time)
+                    END AS scheduled_minutes,
+                    -- Calculate worked hours (handle overnight and ensure positive)
+                    CASE 
+                        WHEN s.clockin IS NOT NULL AND s.clockout IS NOT NULL 
+                        THEN 
+                            CASE 
+                                WHEN s.shift_type = 'overnight' AND TIME(s.clockout) < TIME(s.clockin)
+                                THEN TIMESTAMPDIFF(MINUTE, s.clockin, ADDTIME(DATE_ADD(s.schedule_date, INTERVAL 1 DAY), s.clockout))
+                                ELSE TIMESTAMPDIFF(MINUTE, s.clockin, s.clockout)
+                            END
+                        ELSE 0 
+                    END AS minutes_worked
                 FROM scheduling s JOIN users u ON s.email = u.email";
 
                 // Add WHERE clauses if any
@@ -1560,20 +1576,30 @@
 
                 // Process results and group by staff
                 $staffSchedules = [];
-                $totalMinutes = 0;
+                $totalMinutesWorked = 0;
+                $totalMinutesScheduled = 0; // NEW: Track total scheduled minutes
                 $currentStaff = null;
 
                 while ($row = $result->fetch_assoc()) {
                     $staffKey = $row['staff_email'];
-                    $totalMinutes += abs($row['minutes_worked']);
+                    $workedMinutes = max(0, $row['minutes_worked']); // Ensure non-negative
+                    $scheduledMinutes = max(0, $row['scheduled_minutes']); // Ensure non-negative
                     
-                    // Format hours worked
-                    $hours = floor(abs($row['minutes_worked']) / 60);
-                    $minutes = abs($row['minutes_worked']) % 60;
-                    $hoursWorked = sprintf("%dh %02dm", $hours, $minutes);
+                    $totalMinutesWorked += $workedMinutes;
+                    $totalMinutesScheduled += $scheduledMinutes; // Add to total scheduled
+                    
+                    // Format worked hours
+                    $workedHours = floor($workedMinutes / 60);
+                    $workedMinutesRemainder = $workedMinutes % 60;
+                    $hoursWorked = sprintf("%dh %02dm", $workedHours, $workedMinutesRemainder);
+                    
+                    // Format scheduled hours
+                    $scheduledHours = floor($scheduledMinutes / 60);
+                    $scheduledMinutesRemainder = $scheduledMinutes % 60;
+                    $hoursScheduled = sprintf("%dh %02dm", $scheduledHours, $scheduledMinutesRemainder);
                     
                     // Calculate pay for this shift
-                    $shiftPay = $hours * $row['pay_per_hour'] + ($minutes / 60) * $row['pay_per_hour'];
+                    $shiftPay = ($workedHours + ($workedMinutesRemainder / 60)) * $row['pay_per_hour'];
                     
                     // Determine status
                     $status = 'Pending';
@@ -1593,8 +1619,10 @@
                         'pay_per_hour' => $row['pay_per_hour'],
                         'overnight_type' => $row['overnight_type'],
                         'hours_worked' => $hoursWorked,
-                        'minutes_worked' => abs($row['minutes_worked']),
-                        'pay' => abs(number_format($shiftPay, 2)),
+                        'minutes_worked' => $workedMinutes,
+                        'hours_scheduled' => $hoursScheduled, // NEW: Add scheduled hours
+                        'minutes_scheduled' => $scheduledMinutes, // NEW: Add scheduled minutes
+                        'pay' => number_format($shiftPay, 2),
                         'status' => $status
                     ];
 
@@ -1604,33 +1632,55 @@
                             'name' => $row['firstname'] . ' ' . $row['lastname'],
                             'email' => $row['staff_email'],
                             'schedules' => [],
-                            'total_hours' => 0,
-                            'total_minutes' => 0,
+                            'total_hours_worked' => 0,
+                            'total_minutes_worked' => 0,
+                            'total_hours_scheduled' => 0, // NEW: Track scheduled hours
+                            'total_minutes_scheduled' => 0, // NEW: Track scheduled minutes
                             'total_pay' => 0
                         ];
                     }
 
                     // Add schedule to staff
                     $staffSchedules[$staffKey]['schedules'][] = $scheduleData;
-                    $staffSchedules[$staffKey]['total_minutes'] += $row['minutes_worked'];
+                    $staffSchedules[$staffKey]['total_minutes_worked'] += $workedMinutes;
+                    $staffSchedules[$staffKey]['total_minutes_scheduled'] += $scheduledMinutes; // Add to staff scheduled
                     $staffSchedules[$staffKey]['total_pay'] += $shiftPay;
                 }
 
                 // Calculate total hours for each staff
                 foreach ($staffSchedules as $key => $staff) {
-                    $totalHours = floor(abs($staff['total_minutes']) / 60);
-                    $totalMinutesRemainder = abs($staff['total_minutes']) % 60;
-                    $staffSchedules[$key]['total_hours'] = sprintf("%dh %02dm", $totalHours, $totalMinutesRemainder);
-                    $staffSchedules[$key]['total_pay'] = abs(number_format($staff['total_pay'], 2));
+                    // Worked hours
+                    $totalWorkedHours = floor($staff['total_minutes_worked'] / 60);
+                    $totalWorkedMinutes = $staff['total_minutes_worked'] % 60;
+                    $staffSchedules[$key]['total_hours_worked'] = sprintf("%dh %02dm", $totalWorkedHours, $totalWorkedMinutes);
+                    
+                    // Scheduled hours
+                    $totalScheduledHours = floor($staff['total_minutes_scheduled'] / 60);
+                    $totalScheduledMinutes = $staff['total_minutes_scheduled'] % 60;
+                    $staffSchedules[$key]['total_hours_scheduled'] = sprintf("%dh %02dm", $totalScheduledHours, $totalScheduledMinutes);
+                    
+                    // Format pay
+                    $staffSchedules[$key]['total_pay'] = number_format($staff['total_pay'], 2);
                 }
 
                 // Convert to indexed array for JSON
                 $groupedSchedules = array_values($staffSchedules);
 
-                // Format total hours
-                $totalHours = abs(floor($totalMinutes / 60));
-                $totalMinutesRemainder = abs($totalMinutes) % 60;
-                $totalHoursFormatted = sprintf("%dh %02dm", $totalHours, $totalMinutesRemainder);
+                // Format total worked hours
+                $totalWorkedHours = floor($totalMinutesWorked / 60);
+                $totalWorkedMinutes = $totalMinutesWorked % 60;
+                $totalWorkedHoursFormatted = sprintf("%dh %02dm", $totalWorkedHours, $totalWorkedMinutes);
+                
+                // Format total scheduled hours (NEW)
+                $totalScheduledHours = floor($totalMinutesScheduled / 60);
+                $totalScheduledMinutes = $totalMinutesScheduled % 60;
+                $totalScheduledHoursFormatted = sprintf("%dh %02dm", $totalScheduledHours, $totalScheduledMinutes);
+
+                // Calculate efficiency percentage (worked/scheduled)
+                $efficiencyPercentage = 0;
+                if ($totalMinutesScheduled > 0) {
+                    $efficiencyPercentage = ($totalMinutesWorked / $totalMinutesScheduled) * 100;
+                }
 
                 // Return JSON response
                 echo json_encode([
@@ -1644,8 +1694,10 @@
                         'perPage' => $perPage
                     ],
                     'summary' => [
-                        'totalHours' => $totalHoursFormatted,
-                        'totalRecords' => $totalRecords
+                        'totalHoursWorked' => $totalWorkedHoursFormatted,
+                        'totalHoursScheduled' => $totalScheduledHoursFormatted, // NEW
+                        'totalRecords' => $totalRecords,
+                        'efficiencyPercentage' => number_format($efficiencyPercentage, 1) . '%'
                     ]
                 ]);
 

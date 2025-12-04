@@ -2253,18 +2253,16 @@ class allmodels{
 
             foreach ($schedules as $index => $schedule) {
                 try {
-                    // Debug: Log each schedule
-                    error_log("Processing schedule {$index}: " . print_r($schedule, true));
 
                     // Skip schedules that don't have all required fields
                     if (empty($schedule['start_time']) || empty($schedule['end_time']) || empty($schedule['shift_type'])) {
-                        error_log("Skipping schedule {$index} - missing required fields");
+                        //error_log("Skipping schedule {$index} - missing required fields");
                         $skippedSchedules++;
                         continue;
                     }
 
                     // Validate other required fields
-                    if (empty($schedule['staff_id']) || empty($schedule['schedule_date']) || empty($schedule['pay_per_hour'])) {
+                    if (empty($schedule['staff_id']) || empty($schedule['schedule_date'])) {
                         throw new Exception("Missing required fields for schedule at index {$index}");
                     }
 
@@ -2288,7 +2286,6 @@ class allmodels{
                     $endTime = $this->db->real_escape_string($schedule['end_time']);
                     $shiftType = $this->db->real_escape_string($schedule['shift_type']);
                     $overnightType = $this->db->real_escape_string($schedule['overnight_type'] ?? '');
-                    $payPerHour = (float)$schedule['pay_per_hour'];
 
                     // Get agency name
                     $locationName = $this->getAgencyName($locationId);
@@ -2306,11 +2303,10 @@ class allmodels{
                             end_time,
                             shift_type,
                             schedule_date,
-                            pay_per_hour,
                             overnight_type,
                             created_at,
                             updated_at
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
                     ";
 
                     $stmt = $this->db->prepare($sql);
@@ -2319,7 +2315,7 @@ class allmodels{
                     }
 
                     $stmt->bind_param(
-                        'iisssssds', 
+                        'iissssss', 
                         $staffId,
                         $locationId, 
                         $locationName,
@@ -2327,7 +2323,6 @@ class allmodels{
                         $endTime,
                         $shiftType,
                         $scheduleDate,
-                        $payPerHour,
                         $overnightType
                     );
 
@@ -2337,10 +2332,10 @@ class allmodels{
 
                     $stmt->close();
                     $savedCount++;
-                    error_log("Successfully saved schedule {$index}");
+                   // error_log("Successfully saved schedule {$index}");
 
                 } catch (Exception $e) {
-                    error_log("Failed to save schedule at index {$index}: " . $e->getMessage());
+                    //error_log("Failed to save schedule at index {$index}: " . $e->getMessage());
                     $failedSchedules[] = [
                         'staff_id' => $schedule['staff_id'] ?? 'unknown',
                         'schedule_date' => $schedule['schedule_date'] ?? 'unknown',
