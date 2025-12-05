@@ -1205,11 +1205,11 @@
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Clockin Time</label>
-                                            <input type="time" name="clockin_time" class="form-control" value="${schedule.clockin.substring(0, 5)}" required>
+                                            <input type="time" name="clockin_time" class="form-control" value="${schedule.clockin.substring(0, 5)}">
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Cloutout Time</label>
-                                            <input type="time" name="clockout_time" class="form-control" value="${schedule.clockout.substring(0, 5)}" required>
+                                            <input type="time" name="clockout_time" class="form-control" value="${schedule.clockout.substring(0, 5)}">
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Pay Per Hour ($)</label>
