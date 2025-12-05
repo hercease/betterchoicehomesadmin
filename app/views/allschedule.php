@@ -1115,13 +1115,13 @@
                                     <div class="action-buttons">
                                         <button class="action-btn btn-edit" 
                                                 onclick="editSchedule(${schedule.id}, event)"
-                                                // ${!canEditDelete ? 'disabled' : ''}
+                                                 ${/* !canEditDelete ? 'disabled' : '' */ ''}
                                                 title="${canEditDelete ? 'Edit Schedule' : 'Cannot edit - schedule already started'}">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <button class="action-btn btn-delete" 
                                                 onclick="deleteSchedule(${schedule.id}, event)"
-                                                // ${!canEditDelete ? 'disabled' : ''}
+                                                 ${/* !canEditDelete ? 'disabled' : '' */ ''}
                                                 title="${canEditDelete ? 'Delete Schedule' : 'Cannot delete - schedule already started'}">
                                             <i class="fas fa-trash"></i>
                                         </button>
