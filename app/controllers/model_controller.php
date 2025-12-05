@@ -953,7 +953,7 @@
                     }
                 }
 
-                error_log(print_r($_POST, true));
+                //error_log(print_r($_POST, true));
 
                 $email = $_POST['email'];
                 $overnight_type = $_POST['overnight_type'] ?? '';
