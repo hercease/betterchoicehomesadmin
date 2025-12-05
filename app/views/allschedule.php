@@ -1115,13 +1115,13 @@
                                     <div class="action-buttons">
                                         <button class="action-btn btn-edit" 
                                                 onclick="editSchedule(${schedule.id}, event)"
-                                                ${!canEditDelete ? 'disabled' : ''}
+                                                // ${!canEditDelete ? 'disabled' : ''}
                                                 title="${canEditDelete ? 'Edit Schedule' : 'Cannot edit - schedule already started'}">
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <button class="action-btn btn-delete" 
                                                 onclick="deleteSchedule(${schedule.id}, event)"
-                                                ${!canEditDelete ? 'disabled' : ''}
+                                                // ${!canEditDelete ? 'disabled' : ''}
                                                 title="${canEditDelete ? 'Delete Schedule' : 'Cannot delete - schedule already started'}">
                                             <i class="fas fa-trash"></i>
                                         </button>
@@ -1202,6 +1202,14 @@
                                         <div class="col-md-6">
                                             <label class="form-label">End Time</label>
                                             <input type="time" name="end_time" class="form-control" value="${schedule.end_time.substring(0, 5)}" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Clockin Time</label>
+                                            <input type="time" name="clockin_time" class="form-control" value="${schedule.clockin.substring(0, 5)}" required>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Cloutout Time</label>
+                                            <input type="time" name="clockout_time" class="form-control" value="${schedule.clockout.substring(0, 5)}" required>
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Pay Per Hour ($)</label>
