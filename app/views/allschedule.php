@@ -1154,10 +1154,10 @@
                 return;
             }
             
-            if (schedule.status !== 'scheduled') {
+            /*if (schedule.status !== 'scheduled') {
                 showToast.error('Cannot edit schedule that has already started');
                 return;
-            }
+            }*/
 
             showLoader('Loading schedule for editing...');
             
