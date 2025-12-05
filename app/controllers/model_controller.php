@@ -957,8 +957,8 @@
 
                 $email = $_POST['email'];
                 $overnight_type = $_POST['overnight_type'] ?? '';
-                $clockinTime = $_POST['clockin_time'] == "12:00" || $_POST['clockin_time'] == "00:00" ? NULL : $_POST['clockin_time'] ?? NULL;
-                $clockoutTime = $_POST['clockout_time'] == "12:00" || $_POST['clockout_time'] == "00:00" ? NULL : $_POST['clockout_time'] ?? NULL;
+                $clockinTime = $_POST['clockin_time'] == "" ? NULL : $_POST['clockin_time'] ?? NULL;
+                $clockoutTime = $_POST['clockout_time'] == "" ? NULL : $_POST['clockout_time'] ?? NULL;
 
                 $stmt = $this->db->prepare("UPDATE scheduling SET start_time = ?, end_time = ?, shift_type = ?, pay_per_hour = ?, overnight_type = ?, clockin = ?, clockout = ? WHERE id = ?");
                 $stmt->bind_param("sssssssi", $input['start_time'], $input['end_time'], $input['shift_type'], $input['pay_per_hour'], $overnight_type, $clockinTime, $clockoutTime, $input['id']);
