@@ -1177,6 +1177,7 @@
                 }
             })
             .catch(error => {
+                console.error('Error:', error);
                 hideLoader();
                 showToast.error('Network error occurred');
             });
@@ -1205,11 +1206,13 @@
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Clockin Time</label>
-                                            <input type="time" name="clockin_time" class="form-control" value="${schedule.clockin.substring(0, 5)}">
+                                            <input type="time" name="clockin_time" class="form-control" value="${schedule.clockin ? schedule.clockin.substring(0, 5) : ''}">
+                                            ${!schedule.clockin ? '<small class="text-muted">Not clocked in yet</small>' : ''}
                                         </div>
                                         <div class="col-md-6">
-                                            <label class="form-label">Cloutout Time</label>
-                                            <input type="time" name="clockout_time" class="form-control" value="${schedule.clockout.substring(0, 5)}">
+                                            <label class="form-label">Clockout Time</label>
+                                            <input type="time" name="clockout_time" class="form-control" value="${schedule.clockout ? schedule.clockout.substring(0, 5) : ''}">
+                                            ${!schedule.clockout ? '<small class="text-muted">Not clocked out yet</small>' : ''}
                                         </div>
                                         <div class="col-md-6">
                                             <label class="form-label">Pay Per Hour ($)</label>
