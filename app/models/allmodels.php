@@ -1635,7 +1635,7 @@ class allmodels{
         // Create end datetime - add 1 day for overnight shifts
         $endDateTime = new DateTime($scheduleDate . ' ' . $endTime);
         if ($shiftType === 'overnight') {
-            $endDateTime->modify('+1 day');
+            $endDateTime->modify('+24 hours');
         }
         
         // Calculate difference in hours
