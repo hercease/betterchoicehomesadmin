@@ -1590,7 +1590,7 @@ class allmodels{
         // Calculate worked hours
         $workedHours = 0;
         if (!empty($schedule['clockin']) && !empty($schedule['clockout'])) {
-            $workedHours = $this->calculateTimeDifference($schedule['clockin'], $schedule['clockout']);
+            $workedHours = $this->calculateTimeDifference($schedule['schedule_date'], $schedule['clockin'], $schedule['clockout'], $schedule['shift_type'] ?? 'day');
         }
         
         // Calculate payments
@@ -1676,16 +1676,23 @@ class allmodels{
         return 'scheduled';
     }
 
-    private function calculateTimeDifference($startTime, $endTime)
+    private function calculateTimeDifference($scheduleDate, $startTime, $endTime, $shiftType = 'day')
     {
         if (empty($startTime) || empty($endTime)) {
             return 0;
         }
         
-        $start = new DateTime($startTime);
-        $end = new DateTime($endTime);
+        // Create start datetime
+        $startDateTime = new DateTime($scheduleDate . ' ' . $startTime);
         
-        $interval = $start->diff($end);
+        // Create end datetime - add 1 day for overnight shifts
+        $endDateTime = new DateTime($scheduleDate . ' ' . $endTime);
+        if ($shiftType === 'overnight') {
+            $endDateTime->modify('+24 hours');
+        }
+        
+        // Calculate difference in hours
+        $interval = $startDateTime->diff($endDateTime);
         $hours = $interval->h + ($interval->i / 60) + ($interval->s / 3600);
         
         return $hours;
