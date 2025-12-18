@@ -1397,15 +1397,16 @@
             
             // Check if schedule can be deleted (status should be 'scheduled')
             const schedule = findScheduleById(scheduleId);
+            console.log(schedule);
             if (!schedule) {
                 showToast.error('Schedule not found');
                 return;
             }
             
-            if (schedule.status !== 'scheduled') {
+            /*if (schedule.status !== 'scheduled') {
                 showToast.error('Cannot delete schedule that has already started');
                 return;
-            }
+            }*/
 
             iziToast.question({
                 timeout: false,

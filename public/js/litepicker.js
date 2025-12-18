@@ -75,7 +75,6 @@ window.addEventListener('DOMContentLoaded', event => {
             element: litepickerRangePlugin,
             startDate: new Date(),
             endDate: new Date(),
-            minDate: new Date(), 
             singleMode: false,
             numberOfMonths: 2,
             numberOfColumns: 2,
