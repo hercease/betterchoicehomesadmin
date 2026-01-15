@@ -167,39 +167,39 @@
                                     <div class="card-body">
                                         <div class="mb-3">
                                             <label>Firstname</label>
-                                            <input type="text" name="firstname" placeholder="Enter firstname" class="form-control" required value="<?php echo $data['user_info']['firstname'] ?? ''; ?>" />
+                                            <input type="text" name="firstname" placeholder="Enter firstname" class="form-control" value="<?php echo $data['user_info']['firstname'] ?? ''; ?>" />
                                         </div>
                                         <div class="mb-3">
                                             <label>Lastname</label>
-                                            <input type="text" name="lastname" placeholder="Enter lastname" class="form-control" required value="<?php echo $data['user_info']['lastname'] ?? ''; ?>" />
+                                            <input type="text" name="lastname" placeholder="Enter lastname" class="form-control" value="<?php echo $data['user_info']['lastname'] ?? ''; ?>" />
                                         </div>
                                         <div class="mb-3">
                                             <label>City</label>
-                                            <input type="text" name="city" placeholder="Enter city" class="form-control" required value="<?php echo $data['user_info']['userdetails']['city'] ?? ''; ?>" />
+                                            <input type="text" name="city" placeholder="Enter city" class="form-control" value="<?php echo $data['user_info']['userdetails']['city'] ?? ''; ?>" />
                                         </div>
                                         <div class="mb-3">
                                             <label>Province</label>
-                                            <input type="text" name="province" placeholder="Enter province" class="form-control" required value="<?php echo $data['user_info']['userdetails']['province'] ?? ''; ?>" />
+                                            <input type="text" name="province" placeholder="Enter province" class="form-control" value="<?php echo $data['user_info']['userdetails']['province'] ?? ''; ?>" />
                                         </div>
                                         <div class="mb-3">
                                             <label>Address</label>
-                                            <input type="text" name="address" placeholder="Enter Address" class="form-control" required value="<?php echo $data['user_info']['userdetails']['address'] ?? ''; ?>" />
+                                            <input type="text" name="address" placeholder="Enter Address" class="form-control" value="<?php echo $data['user_info']['userdetails']['address'] ?? ''; ?>" />
                                         </div>
                                         <div class="mb-3">
                                             <label>Postal Code</label>
-                                            <input type="text" name="postal_code" placeholder="Enter Postal Code" class="form-control" required value="<?php echo $data['user_info']['userdetails']['postal_code'] ?? ''; ?>" />
+                                            <input type="text" name="postal_code" placeholder="Enter Postal Code" class="form-control" value="<?php echo $data['user_info']['userdetails']['postal_code'] ?? ''; ?>" />
                                         </div>
                                         <div class="mb-3">
                                             <label>Contact No</label>
-                                            <input type="number" class="form-control" placeholder="Enter contact number" required name="emergencyContact" value="<?php echo $data['user_info']['userdetails']['contact_number'] ?? ''; ?>" />
+                                            <input type="number" class="form-control" placeholder="Enter contact number" name="emergencyContact" value="<?php echo $data['user_info']['userdetails']['contact_number'] ?? ''; ?>" />
                                         </div>
                                         <div class="mb-3">
                                             <label>Date Of Birth</label>
-                                            <input type="date" class="form-control" placeholder="Enter contact number" required name="dateOfBirth" value="<?php echo $data['user_info']['userdetails']['dob'] ?? ''; ?>" />
+                                            <input type="date" class="form-control" placeholder="Enter contact number" name="dateOfBirth" value="<?php echo $data['user_info']['userdetails']['dob'] ?? ''; ?>" />
                                         </div>
                                         <div class="mb-3">
                                             <label>SIN (Social Insurance Number)</label>
-                                            <input type="number" class="form-control" placeholder="Enter social insurance number" required name="sin" value="<?php echo $data['user_info']['userdetails']['sin'] ?? ''; ?>" />
+                                            <input type="number" class="form-control" placeholder="Enter social insurance number" name="sin" value="<?php echo $data['user_info']['userdetails']['sin'] ?? ''; ?>" />
                                         </div>
                                     </div>
                                 </div>
@@ -213,11 +213,11 @@
                                     <div class="card-body">
                                         <div class="mb-3">
                                             <label>License No</label>
-                                            <input type="number" class="form-control" placeholder="Enter license number" required name="driverlicensenumber" value="<?php echo $data['user_info']['userdetails']['driver_license_number'] ?? ''; ?>" />
+                                            <input type="text" class="form-control" placeholder="Enter license number" name="driverlicensenumber" value="<?php echo $data['user_info']['userdetails']['driver_license_number'] ?? ''; ?>" />
                                         </div>
                                         <div class="mb-3">
                                             <label>Expiry Date</label>
-                                            <input type="date" class="form-control" required name="driverlicenseexpirationdate" value="<?php echo $data['user_info']['userdetails']['driver_license_expiry_date'] ?? ''; ?>" />
+                                            <input type="date" class="form-control" name="driverlicenseexpirationdate" value="<?php echo $data['user_info']['userdetails']['driver_license_expiry_date'] ?? ''; ?>" />
                                         </div>
                                     </div>
                                 </div>
@@ -229,15 +229,15 @@
                                     <div class="card-body">
                                         <div class="mb-3">
                                             <label>Transit No</label>
-                                            <input type="number" class="form-control" placeholder="Enter Transit No" required name="transitNumber" value="<?php echo $data['user_info']['userdetails']['transit_number'] ?? ''; ?>" />
+                                            <input type="number" class="form-control" placeholder="Enter Transit No" name="transitNumber" value="<?php echo $data['user_info']['userdetails']['transit_number'] ?? ''; ?>" />
                                         </div>
                                         <div class="mb-3">
                                             <label>Institution No</label>
-                                            <input type="number" class="form-control" placeholder="Enter Institution No" required name="institutionNumber" value="<?php echo $data['user_info']['userdetails']['institution_number'] ?? ''; ?>" />
+                                            <input type="number" class="form-control" placeholder="Enter Institution No" name="institutionNumber" value="<?php echo $data['user_info']['userdetails']['institution_number'] ?? ''; ?>" />
                                         </div>
                                         <div class="mb-3">
                                             <label>Account No</label>
-                                            <input type="number" class="form-control" placeholder="Enter Account No" required name="accountNumber" value="<?php echo $data['user_info']['userdetails']['account_number'] ?? ''; ?>" />
+                                            <input type="number" class="form-control" placeholder="Enter Account No" name="accountNumber" value="<?php echo $data['user_info']['userdetails']['account_number'] ?? ''; ?>" />
                                         </div>
                                     </div>
                                 </div>
