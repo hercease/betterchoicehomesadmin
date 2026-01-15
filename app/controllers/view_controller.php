@@ -388,7 +388,8 @@ class ViewController {
             $email = $_SESSION['better_email'];
             $timezone = $_SESSION['timezone'] ?? 'America/Toronto';
             date_default_timezone_set($timezone);
-            $fetchadmininfo = $this->allmodels->getUserInfo($userId);
+            $fetchadmininfo = $this->allmodels->getUserInfo($email);
+            $fetchstaffinfo = $this->allmodels->getUserInfo($userId);
             $fetch_all_roles = $this->allmodels->fetchAllRoles()['roles'];
             $role_tags = array_column($fetch_all_roles, 'tag');
 
@@ -397,7 +398,8 @@ class ViewController {
             if($fetchadmininfo['isAdmin'] > 0 || in_array($fetchadmininfo['role'], $role_tags)){
 
                 $data = [
-                    "user_info" => $fetchadmininfo
+                    "admin_info" => $fetchadmininfo,
+                    "user_info" => $fetchstaffinfo
                 ];
 
                 require_once('app/views/edit_staff_profile.php');

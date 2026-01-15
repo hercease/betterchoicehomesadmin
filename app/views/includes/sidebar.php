@@ -101,7 +101,7 @@
           Agencies Staffs
         </a>
 
-      <?php if ($data['user_info']['isAdmin'] > 0) { ?>
+      <?php if ($data['admin_info']['isAdmin'] > 0) { ?>
 
         <div class="sidenav-menu-heading">Settings</div>
 
@@ -120,7 +120,7 @@
     <div class="sidenav-footer">
       <div class="sidenav-footer-content">
         <div class="sidenav-footer-subtitle">Logged in as:</div>
-        <div class="sidenav-footer-title text-secondary"><?php echo $data['user_info']['email'] ?? ''; ?></div>
+        <div class="sidenav-footer-title text-secondary"><?php echo $data['admin_info']['email'] ?? ''; ?></div>
       </div>
     </div>
   </nav>

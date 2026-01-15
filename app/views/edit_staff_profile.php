@@ -254,7 +254,7 @@
                                                 <input 
                                                     type="file" 
                                                     accept="application/pdf" 
-                                                    <?php echo $documents['optional'] ? '' : 'required' ?> 
+                                                    <?php echo $documents['optional'] == true ? '' : 'required' ?> 
                                                     name="document_files[<?php echo $documents['tag']; ?>]" 
                                                     class="form-control" 
                                                 />

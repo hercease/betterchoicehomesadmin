@@ -1758,6 +1758,14 @@ class allmodels{
                         WHERE id = ?";
                 $stmt = $this->db->prepare($sql);
                 $stmt->bind_param('ssiii', $name, $tag, $sort_order, $is_required, $id);
+                $stmt->execute();
+
+                $optional = $is_required ? 0 : 1;
+                $sql = "UPDATE documents SET optional = ? WHERE doc_tag = ?";
+                $stmt = $this->db->prepare($sql);
+                $stmt->bind_param('is', $optional, $tag);
+                $stmt->execute();
+
 
             } else {
                 // Insert new document
